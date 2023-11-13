@@ -1,0 +1,12 @@
+.git
+.cache
+*.pyc
+tmp/*
+test/*
+docs/*
+**/.venv
+**/.mnist-keras
+**/.mnist-pytorch
+**/*.npz
+**/data
+**/*.tgz
