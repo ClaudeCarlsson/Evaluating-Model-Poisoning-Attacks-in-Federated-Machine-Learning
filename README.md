@@ -1,4 +1,4 @@
-# Project 1, Federated machine learaning
+# Project 1, Federated machine learning
 
 ##Background
 Federated machine learning (FedML) is a promising approach that enables multiple participants to collaboratively train a shared machine
