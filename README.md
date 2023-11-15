@@ -1,6 +1,7 @@
 # Project 1, Federated machine learning
 
 ## Background
+
 Federated machine learning (FedML) is a promising approach that enables multiple participants to collaboratively train a shared machine
 learning prediction model to high accuracy without requiring them to share their data. FedML works by allowing each user devices to download
 current global model, improve it by learning from local data, and then submitting a summarized version of the changes often referred to as
@@ -10,12 +11,11 @@ threat and we will look at this threat in detail under this project.
 
 ## Poisoning Attack
 Poison attacks are a serious security threat that can lead to unreliable results. 
-
-### Broadly categorized as either:
+Broadly categorized as either:
 Data Poisoning Attacks based on fake data injection.
 Model Poisoning Attacks based on fake update injection.
 
-## Goal: undermine model’s performance or induce miss classi-
+Goal: Goal: undermine model’s performance or induce miss classification.
 
 ## Project Aims
 In order to design robust defensive mechanisms, it is imperative to first fully understand the impact of different types of attacks under federated
