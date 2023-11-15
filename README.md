@@ -15,7 +15,7 @@ Broadly categorized as either:
 Data Poisoning Attacks based on fake data injection.
 Model Poisoning Attacks based on fake update injection.
 
-Goal: Goal: undermine model’s performance or induce miss classification.
+Goal: undermine model’s performance or induce miss classification.
 
 ## Project Aims
 In order to design robust defensive mechanisms, it is imperative to first fully understand the impact of different types of attacks under federated
