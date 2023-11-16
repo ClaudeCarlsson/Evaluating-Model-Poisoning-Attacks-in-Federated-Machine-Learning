@@ -29,7 +29,6 @@ class RoundController:
     """
 
     def __init__(self, aggregator_name, storage, server, modelservice):
-        """ Initialize the RoundController."""
 
         self.round_configs = queue.Queue()
         self.storage = storage
@@ -204,9 +203,9 @@ class RoundController:
 
         # If the model is already in memory at the server we do not need to do anything.
         if self.modelservice.models.exist(model_id):
-            print("ROUNDCONTROL: Model already exists in memory, skipping model staging.", flush=True)
+            print("MODEL EXISTST (NOT)", flush=True)
             return
-        print("ROUNDCONTROL: Model Staging, fetching model from storage...", flush=True)
+        print("MODEL STAGING", flush=True)
         # If not, download it and stage it in memory at the combiner.
         tries = 0
         while True:

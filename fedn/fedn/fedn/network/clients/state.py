@@ -2,7 +2,6 @@ from enum import Enum
 
 
 class ClientState(Enum):
-    """ Enum for representing the state of a client."""
     idle = 1
     training = 2
     validating = 3

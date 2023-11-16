@@ -1,8 +1,4 @@
 network_id: fedn-network
-controller:
-  host: api-server
-  port: 8092
-  debug: True
 
 statestore:
   type: MongoDB

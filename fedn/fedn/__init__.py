@@ -1,3 +1,3 @@
-"""The fedn package."""
-
-# flake8: noqa
+#
+# Scaleout Systems AB
+# __author__ = 'Morgan Ekmefjord morgan@scaleout.se'

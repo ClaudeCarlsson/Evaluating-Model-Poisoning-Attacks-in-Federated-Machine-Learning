@@ -145,7 +145,7 @@ def client_cmd(ctx, discoverhost, discoverport, token, name, client_id, local_pa
     client.run()
 
 
-@run_cmd.command('dashboard')
+@run_cmd.command('reducer')
 @click.option('-h', '--host', required=False)
 @click.option('-p', '--port', required=False, default='8090', show_default=True)
 @click.option('-k', '--secret-key', required=False, help='Set secret key to enable jwt token authentication.')
@@ -154,16 +154,15 @@ def client_cmd(ctx, discoverhost, discoverport, token, name, client_id, local_pa
 @click.option('-in', '--init', required=True, default=None,
               help='Set to a filename to (re)init reducer state from file.')
 @click.pass_context
-def dashboard_cmd(ctx, host, port, secret_key, local_package, name, init):
-    """ Start the dashboard service.
+def reducer_cmd(ctx, host, port, secret_key, local_package, name, init):
+    """
 
-    :param ctx: Click context.
-    :param discoverhost: Hostname for discovery services (dashboard).
-    :param discoverport: Port for discovery services (dashboard).
-    :param secret_key: Set secret key to enable jwt token authentication.
-    :param local_package: Enable use of local compute package.
-    :param name: Set service name.
-    :param init: Set to a filename to (re)init config state from file.
+    :param ctx:
+    :param discoverhost:
+    :param discoverport:
+    :param secret_key:
+    :param name:
+    :param init:
     """
     remote = False if local_package else True
     config = {'host': host, 'port': port, 'secret_key': secret_key,
@@ -190,7 +189,7 @@ def dashboard_cmd(ctx, host, port, secret_key, local_package, name, init):
     statestore_config = fedn_config['statestore']
     if statestore_config['type'] == 'MongoDB':
         statestore = MongoStateStore(
-            network_id, statestore_config['mongo_config'], fedn_config['storage'])
+            network_id, statestore_config['mongo_config'], defaults=config['init'])
     else:
         print("Unsupported statestore type, exiting. ", flush=True)
         exit(-1)

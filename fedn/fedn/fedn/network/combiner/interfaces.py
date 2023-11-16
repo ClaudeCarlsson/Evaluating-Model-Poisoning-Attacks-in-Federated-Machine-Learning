@@ -4,7 +4,6 @@ import json
 from io import BytesIO
 
 import grpc
-from google.protobuf.json_format import MessageToJson
 
 import fedn.common.net.grpc.fedn_pb2 as fedn
 import fedn.common.net.grpc.fedn_pb2_grpc as rpc
@@ -15,15 +14,7 @@ class CombinerUnavailableError(Exception):
 
 
 class Channel:
-    """ Wrapper for a gRPC channel.
-
-    :param address: The address for the gRPC server.
-    :type address: str
-    :param port: The port for connecting to the gRPC server.
-    :type port: int
-    :param certificate: The certificate for connecting to the gRPC server (optional)
-    :type certificate: str
-    """
+    """ Wrapper for a gRPC channel. """
 
     def __init__(self, address, port, certificate=None):
         """ Create a channel.
@@ -63,28 +54,30 @@ class CombinerInterface:
     """ Interface for the Combiner (aggregation server).
         Abstraction on top of the gRPC server servicer.
 
-    :param parent: The parent combiner (controller)
-    :type parent: :class:`fedn.network.api.interfaces.API`
-    :param name: The name of the combiner.
-    :type name: str
-    :param address: The address of the combiner.
-    :type address: str
-    :param fqdn: The fully qualified domain name of the combiner.
-    :type fqdn: str
-    :param port: The port of the combiner.
-    :type port: int
-    :param certificate: The certificate of the combiner (optional).
-    :type certificate: str
-    :param key: The key of the combiner (optional).
-    :type key: str
-    :param ip: The ip of the combiner (optional).
-    :type ip: str
-    :param config: The configuration of the combiner (optional).
-    :type config: dict
     """
 
     def __init__(self, parent, name, address, fqdn, port, certificate=None, key=None, ip=None, config=None):
-        """ Initialize the combiner interface."""
+        """ Initialize the combiner interface.
+
+        :parameter parent: The parent combiner.
+        :type parent: :class:`fedn.network.combiner.Combiner`
+        :parameter name: The name of the combiner.
+        :type name: str
+        :parameter address: The address of the combiner.
+        :type address: str
+        :parameter fqdn: The fully qualified domain name of the combiner.
+        :type fqdn: str
+        :parameter port: The port of the combiner.
+        :type port: int
+        :parameter certificate: The certificate of the combiner (optional).
+        :type certificate: str
+        :parameter key: The key of the combiner (optional).
+        :type key: str
+        :parameter ip: The ip of the combiner (optional).
+        :type ip: str
+        :parameter config: The configuration of the combiner (optional).
+        :type config: dict
+        """
         self.parent = parent
         self.name = name
         self.address = address
@@ -115,12 +108,12 @@ class CombinerInterface:
     def to_dict(self):
         """ Export combiner configuration to a dictionary.
 
-        :return: A dictionary with the combiner configuration.
-        :rtype: dict
+        : return: A dictionary with the combiner configuration.
+        : rtype: dict
         """
 
         data = {
-            'parent': self.parent,
+            'parent': self.parent.to_dict(),
             'name': self.name,
             'address': self.address,
             'fqdn': self.fqdn,
@@ -181,6 +174,7 @@ class CombinerInterface:
 
         :return: A dictionary describing the combiner state.
         :rtype: dict
+
         :raises CombinerUnavailableError: If the combiner is unavailable.
         """
         channel = Channel(self.address, self.port,
@@ -200,7 +194,8 @@ class CombinerInterface:
                 raise
 
     def configure(self, config=None):
-        """ Configure the combiner. Set the parameters in config at the server.
+        """ Configure the combiner.
+        Set the parameters in config at the server.
 
         :param config: A dictionary containing parameters.
         :type config: dict
@@ -273,6 +268,7 @@ class CombinerInterface:
     def get_model(self, id):
         """ Download a model from the combiner server.
 
+
         :param id: The model id.
         :type id: str
         :return: A file-like object containing the model.
@@ -321,22 +317,3 @@ class CombinerInterface:
             return False
 
         return False
-
-    def list_active_clients(self):
-        """ List active clients.
-
-        :return: A list of active clients.
-        :rtype: json
-        """
-        channel = Channel(self.address, self.port,
-                          self.certificate).get_channel()
-        control = rpc.ConnectorStub(channel)
-        request = fedn.ListClientsRequest()
-        try:
-            response = control.ListActiveClients(request)
-        except grpc.RpcError as e:
-            if e.code() == grpc.StatusCode.UNAVAILABLE:
-                raise CombinerUnavailableError
-            else:
-                raise
-        return MessageToJson(response)

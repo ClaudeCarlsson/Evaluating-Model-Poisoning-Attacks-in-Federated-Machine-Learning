@@ -5,22 +5,18 @@ logger = logging.getLogger()
 
 
 def run_process(args, cwd):
-    """ Run a process and log the output.
+    """
 
-    :param args: The arguments to the process.
-    :type args: list
-    :param cwd: The current working directory.
-    :type cwd: str
-    :return:
+    :param args:
+    :param cwd:
     """
     status = subprocess.Popen(
         args, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     # print(status)
     def check_io():
-        """ Check stdout/stderr of the child process.
+        """
 
-        :return:
         """
         while True:
             output = status.stdout.readline().decode()
