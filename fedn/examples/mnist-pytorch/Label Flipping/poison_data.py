@@ -3,6 +3,7 @@
 import os
 import torch
 import sys
+import random
 
 
 def count_folders(directory):
@@ -82,7 +83,8 @@ def label_flip(root_dir, swap_function, p_ratio):
 
 
 def swap_function(label):
-    return (label+1)%10
+    choices = [i for i in range(10) if i != label]
+    return random.choice(choices)
 
 
 
