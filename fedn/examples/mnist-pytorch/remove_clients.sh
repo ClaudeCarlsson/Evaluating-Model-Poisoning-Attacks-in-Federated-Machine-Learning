@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # The image name to match
-IMAGE_NAME="ghcr.io/scaleoutsystems/fedn/fedn:master-mnist-pytorch"
+IMAGE_NAME="ghcr.io/scaleoutsystems/fedn/fedn:0.5.0-mnist-pytorch"
 
 # Find all container IDs created from the specified image
 CONTAINER_IDS=$(docker ps -q -f ancestor="$IMAGE_NAME")
