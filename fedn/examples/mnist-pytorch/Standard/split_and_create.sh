@@ -11,7 +11,7 @@ NUM_CLIENTS=$1
 
 
 
-# Remove the /data/clients directory
+# Remove the ../data/clients directory
 echo "Removing existing /data/clients directory..."
 rm -rf ./data/clients
 
@@ -35,7 +35,7 @@ echo "Data split successfully."
 
 # Step 2: Run clients
 echo "Running $NUM_CLIENTS clients..."
-./run_clients.sh $NUM_CLIENTS
+Standard/run_clients.sh $NUM_CLIENTS
 
 # Check if run_clients was successful
 if [ $? -ne 0 ]; then

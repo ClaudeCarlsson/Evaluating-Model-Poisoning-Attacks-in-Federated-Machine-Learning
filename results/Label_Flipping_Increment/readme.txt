@@ -1,10 +1,7 @@
 This is the swap function used:
 
 def swap_function(label):
-    choices = [i for i in range(10) if i != label]
-    return random.choice(choices)
-
-
+    return (label+1)%10
 
 
 

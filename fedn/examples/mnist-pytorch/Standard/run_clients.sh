@@ -18,5 +18,5 @@ do
     -v $PWD/data/clients/$client:/var/data \
     -e ENTRYPOINT_OPTS=--data_path=/var/data/mnist.pt \
     --network=fedn_default \
-    ghcr.io/scaleoutsystems/fedn/fedn:master-mnist-pytorch run client -in client.yaml --name client$client
+    ghcr.io/scaleoutsystems/fedn/fedn:0.5.0-mnist-pytorch run client -in client.yaml --name client$client
 done

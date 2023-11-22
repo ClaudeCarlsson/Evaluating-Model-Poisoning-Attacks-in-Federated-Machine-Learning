@@ -106,7 +106,7 @@ def show_data(path,nr_of_clients):
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print("Usage: python poison_data.py <root_dir> <swap_function> <p_ratio>")
+        print("Usage: python poison_data.py <root_dir> <p_ratio>")
         sys.exit(1)
 
     root_dir = sys.argv[1]
