@@ -20,7 +20,7 @@ def count_folders(directory):
 
 
 
-def label_flip(root_dir, swap_function, p_ratio):
+def label_flip(root_dir, swap_function, p_ratio, target_label=None):
     """
     Swaps labels in the y_train of mnist.pt files located in numbered subfolders and saves them in corresponding subdirectories
     within the poisoned_clients directory.
@@ -62,7 +62,7 @@ def label_flip(root_dir, swap_function, p_ratio):
                 if i < num_pois_folders:
                 
                     # Swap labels in y_train
-                    y_train_swapped = [swap_function(label.item()) for label in data['y_train']]
+                    y_train_swapped = [swap_function(label.item(), target_label) for label in data['y_train']]
                     data['y_train'] = torch.tensor(y_train_swapped)
                 
 
@@ -81,11 +81,13 @@ def label_flip(root_dir, swap_function, p_ratio):
                 i += 1
 
 
-
-def swap_function(label):
-    choices = [i for i in range(10) if i != label]
-    return random.choice(choices)
-
+def swap_function(label, target_label=None):
+    if target_label is None or label in target_label:
+        possible_labels = [i for i in range(10) if i != label]
+        new_label = random.choice(possible_labels)
+        return new_label
+    else:
+        return label
 
 
 
@@ -105,12 +107,17 @@ def show_data(path,nr_of_clients):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python poison_data.py <root_dir> <p_ratio>")
+    if len(sys.argv) < 3:
+        print("Usage: python poison_data.py <root_dir> <p_ratio> [target_labels]")
         sys.exit(1)
 
     root_dir = sys.argv[1]
     p_ratio = float(sys.argv[2])
 
-    # Assuming you always want to use example_swap_function for now
-    label_flip(root_dir, swap_function, p_ratio)
+    # Check if target_labels is provided
+    if len(sys.argv) >= 4:
+        target_labels = [int(label) for label in sys.argv[3].split(',')]
+    else:
+        target_labels = None
+
+    label_flip(root_dir, swap_function, p_ratio, target_labels)
