@@ -9,7 +9,7 @@ import torch
 
 from fedn.utils.helpers import get_helper, save_metadata, save_metrics
 
-# Malicious client, grad attack
+# Malicious client, inverse grad attack
 
 HELPER_MODULE = 'pytorchhelper'
 NUM_CLASSES = 10
@@ -162,7 +162,7 @@ def train(in_model_path, out_model_path, data_path=None, batch_size=32, epochs=1
             loss.backward()
 
             ### Gradient inflation attack ###
-            inflation_factor = 10  # Can be adjusted
+            inflation_factor = -1  # Can be adjusted
             for param in model.parameters():
                 if param.grad is not None:
                    param.grad *= inflation_factor
