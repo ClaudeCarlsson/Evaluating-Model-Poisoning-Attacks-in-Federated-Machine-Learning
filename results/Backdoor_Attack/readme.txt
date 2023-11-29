@@ -42,7 +42,7 @@ Backdoor_Attack/backdoor_attack.py data 5 0.4
 
 
 ## Run poisoned clients 
-Label_Flipping/run_poisoned_clients.sh 5
+Backdoor_Attack/run_backdoor_clients.sh 5
 
 
 
