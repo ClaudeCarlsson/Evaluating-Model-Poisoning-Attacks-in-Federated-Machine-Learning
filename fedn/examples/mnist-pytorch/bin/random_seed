@@ -25,7 +25,7 @@ def create_new_seed_file():
             shape = shapes[i]
 
             # Generate new random data with the same shape
-            new_data[key] = np.random.rand(*shape)
+            new_data[key] = np.random.rand(*shape)/10
 
         # Save new data to a new seed file
         np.savez(new_seed_path, **new_data)
