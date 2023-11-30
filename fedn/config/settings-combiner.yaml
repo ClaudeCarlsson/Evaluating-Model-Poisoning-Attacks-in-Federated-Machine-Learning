@@ -1,0 +1,10 @@
+network_id: reducer-network
+discover_host: 130.239.81.58
+discover_port: 8090
+
+name: combiner
+host: 130.239.81.58
+port: 12080
+max_clients: 1000
+
+

@@ -1,0 +1,3 @@
+network_id: fedn-network
+discover_host: 130.239.81.58
+discover_port: 8092

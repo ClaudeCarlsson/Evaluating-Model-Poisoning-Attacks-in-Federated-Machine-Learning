@@ -1,5 +1,4 @@
 #!/bin/bash
-docker-compose down
 
 # Function to stop Docker containers safely
 stop_containers() {
@@ -14,6 +13,8 @@ stop_containers() {
 # Stop containers with specific ancestor images
 stop_containers "ghcr.io/scaleoutsystems/fedn/fedn:0.5.0-mnist-pytorch"
 stop_containers "grad-fedn-client"
+stop_containers "grad-x10-fedn-client"
+stop_containers "grad-x100-fedn-client"
 stop_containers "grad-inv-fedn-client"
 
 docker-compose up -d
