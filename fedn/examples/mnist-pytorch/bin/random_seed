@@ -1,0 +1,41 @@
+#!./.mnist-pytorch/bin/python
+import numpy as np
+import fire
+
+def create_new_seed_file():
+    try:
+        # Set keys
+        keys = ['fc1.weight', 'fc1.bias', 'fc2.weight', 'fc2.bias', 'fc3.weight', 'fc3.bias']
+        
+        # Set layers sizes
+        shapes = [(64, 784), (64,), (32, 64), (32,), (10, 32), (10,)]
+        
+        # Set new seed path:
+        new_seed_path = "random_seed.npz"
+
+        # Dictionary to hold new data
+        new_data = {}
+
+        # Iterate over keys in the original file
+        for i in range(len(keys)):
+            # Get the key
+            key = keys[i]
+            
+            # Get the shape
+            shape = shapes[i]
+
+            # Generate new random data with the same shape
+            new_data[key] = np.random.rand(*shape)
+
+        # Save new data to a new seed file
+        np.savez(new_seed_path, **new_data)
+
+        print("Random seed created!")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+if __name__ == '__main__':
+    fire.Fire(create_new_seed_file)
+
+
