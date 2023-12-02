@@ -1,4 +1,4 @@
-FROM ghcr.io/scaleoutsystems/fedn/fedn:0.5.0-mnist-pytorch
+FROM ghcr.io/scaleoutsystems/fedn/fedn:master-mnist-pytorch
 
 # Ensure the file is copied to the correct location
 COPY malicious_entrypoint.py /app/client/entrypoint
