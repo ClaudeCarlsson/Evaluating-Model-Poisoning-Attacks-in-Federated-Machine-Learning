@@ -1,0 +1,4 @@
+data
+*.tar.gz
+.mnist-pytorch
+client.yaml

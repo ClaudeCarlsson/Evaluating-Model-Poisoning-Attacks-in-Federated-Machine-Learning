@@ -4,7 +4,7 @@ import json
 import os
 import queue
 import re
-import ssl
+import socket
 import sys
 import tempfile
 import threading
@@ -15,18 +15,19 @@ from distutils.dir_util import copy_tree
 from io import BytesIO
 
 import grpc
-from flask import Flask
+from cryptography.hazmat.primitives.serialization import Encoding
 from google.protobuf.json_format import MessageToJson
+from OpenSSL import SSL
 
 import fedn.common.net.grpc.fedn_pb2 as fedn
 import fedn.common.net.grpc.fedn_pb2_grpc as rpc
-from fedn.common.control.package import PackageRuntime
-from fedn.common.net.connect import ConnectorClient, Status
-from fedn.common.net.web.client import page, style
+from fedn.common.log_config import (logger, set_log_level_from_string,
+                                    set_log_stream)
+from fedn.network.clients.connect import ConnectorClient, Status
+from fedn.network.clients.package import PackageRuntime
 from fedn.network.clients.state import ClientState, ClientStateToString
 from fedn.utils.dispatcher import Dispatcher
 from fedn.utils.helpers import get_helper
-from fedn.utils.logger import Logger
 
 CHUNK_SIZE = 1024 * 1024
 VALID_NAME_REGEX = '^[a-zA-Z0-9_-]*$'
@@ -42,31 +43,23 @@ class GrpcAuth(grpc.AuthMetadataPlugin):
 
 class Client:
     """FEDn Client. Service running on client/datanodes in a federation,
-       recieving and handling model update and model validation requests.
+    recieving and handling model update and model validation requests.
 
-    Attibutes
-    ---------
-    config: dict
-        A configuration dictionary containing connection information for
-        the discovery service (controller) and settings governing e.g.
-        client-combiner assignment behavior.
-
+    :param config: A configuration dictionary containing connection information for the discovery service (controller)
+        and settings governing e.g. client-combiner assignment behavior.
+    :type config: dict
     """
 
     def __init__(self, config):
-        """Initialize the client.
-
-        :param config: A configuration dictionary containing connection information for
-        the discovery service (controller) and settings governing e.g.
-        client-combiner assignment behavior.
-        :type config: dict
-        """
-
+        """Initialize the client."""
         self.state = None
         self.error_state = False
         self._attached = False
         self._missed_heartbeat = 0
         self.config = config
+
+        set_log_level_from_string(config.get('verbosity', "INFO"))
+        set_log_stream(config.get('logfile', None))
 
         self.connector = ConnectorClient(host=config['discover_host'],
                                          port=config['discover_port'],
@@ -88,8 +81,6 @@ class Client:
         self.run_path = os.path.join(os.getcwd(), dirname)
         os.mkdir(self.run_path)
 
-        self.logger = Logger(
-            to_file=config['logfile'], file_path=self.run_path)
         self.started_at = datetime.now()
         self.logs = []
 
@@ -102,18 +93,154 @@ class Client:
 
         self._initialize_helper(client_config)
         if not self.helper:
-            print("Failed to retrive helper class settings! {}".format(
-                client_config), flush=True)
+            logger.warning("Failed to retrieve helper class settings: {}".format(
+                client_config))
 
         self._subscribe_to_combiner(config)
 
         self.state = ClientState.idle
 
+    def _assign(self):
+        """Contacts the controller and asks for combiner assignment.
+
+        :return: A configuration dictionary containing connection information for combiner.
+        :rtype: dict
+        """
+
+        logger.info("Initiating assignment request.")
+        while True:
+            status, response = self.connector.assign()
+            if status == Status.TryAgain:
+                logger.info(response)
+                time.sleep(5)
+                continue
+            if status == Status.Assigned:
+                client_config = response
+                break
+            if status == Status.UnAuthorized:
+                logger.critical(response)
+                sys.exit("Exiting: Unauthorized")
+            if status == Status.UnMatchedConfig:
+                logger.critical(response)
+                sys.exit("Exiting: UnMatchedConfig")
+            time.sleep(5)
+
+        logger.info("Assignment successfully received.")
+        logger.info("Received combiner configuration: {}".format(client_config))
+        return client_config
+
+    def _add_grpc_metadata(self, key, value):
+        """Add metadata for gRPC calls.
+
+        :param key: The key of the metadata.
+        :type key: str
+        :param value: The value of the metadata.
+        :type value: str
+        """
+        # Check if metadata exists and add if not
+        if not hasattr(self, 'metadata'):
+            self.metadata = ()
+
+        # Check if metadata key already exists and replace value if so
+        for i, (k, v) in enumerate(self.metadata):
+            if k == key:
+                # Replace value
+                self.metadata = self.metadata[:i] + ((key, value),) + self.metadata[i + 1:]
+                return
+
+        # Set metadata using tuple concatenation
+        self.metadata += ((key, value),)
+
+    def _get_ssl_certificate(self, domain, port=443):
+        context = SSL.Context(SSL.SSLv23_METHOD)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((domain, port))
+        ssl_sock = SSL.Connection(context, sock)
+        ssl_sock.set_tlsext_host_name(domain.encode())
+        ssl_sock.set_connect_state()
+        ssl_sock.do_handshake()
+        cert = ssl_sock.get_peer_certificate()
+        ssl_sock.close()
+        sock.close()
+        cert = cert.to_cryptography().public_bytes(Encoding.PEM).decode()
+        return cert
+
+    def _connect(self, client_config):
+        """Connect to assigned combiner.
+
+        :param client_config: A configuration dictionary containing connection information for
+        the combiner.
+        :type client_config: dict
+        """
+
+        # TODO use the client_config['certificate'] for setting up secure comms'
+        host = client_config['host']
+        # Add host to gRPC metadata
+        self._add_grpc_metadata('grpc-server', host)
+        logger.info("Client using metadata: {}.".format(self.metadata))
+        port = client_config['port']
+        secure = False
+        if client_config['fqdn'] is not None:
+            host = client_config['fqdn']
+            # assuming https if fqdn is used
+            port = 443
+        logger.info(f"Initiating connection to combiner host at: {host}:{port}")
+
+        if client_config['certificate']:
+            logger.info("Utilizing CA certificate for GRPC channel authentication.")
+            secure = True
+            cert = base64.b64decode(
+                client_config['certificate'])  # .decode('utf-8')
+            credentials = grpc.ssl_channel_credentials(root_certificates=cert)
+            channel = grpc.secure_channel("{}:{}".format(host, str(port)), credentials)
+        elif os.getenv("FEDN_GRPC_ROOT_CERT_PATH"):
+            secure = True
+            logger.info("Using root certificate from environment variable for GRPC channel.")
+            with open(os.environ["FEDN_GRPC_ROOT_CERT_PATH"], 'rb') as f:
+                credentials = grpc.ssl_channel_credentials(f.read())
+            channel = grpc.secure_channel("{}:{}".format(host, str(port)), credentials)
+        elif self.config['secure']:
+            secure = True
+            logger.info("Using CA certificate for GRPC channel.")
+            cert = self._get_ssl_certificate(host, port=port)
+
+            credentials = grpc.ssl_channel_credentials(cert.encode('utf-8'))
+            if self.config['token']:
+                token = self.config['token']
+                auth_creds = grpc.metadata_call_credentials(GrpcAuth(token))
+                channel = grpc.secure_channel("{}:{}".format(host, str(port)), grpc.composite_channel_credentials(credentials, auth_creds))
+            else:
+                channel = grpc.secure_channel("{}:{}".format(host, str(port)), credentials)
+        else:
+            logger.info("Using insecure GRPC channel.")
+            if port == 443:
+                port = 80
+            channel = grpc.insecure_channel("{}:{}".format(
+                host,
+                str(port)))
+
+        self.channel = channel
+
+        self.connectorStub = rpc.ConnectorStub(channel)
+        self.combinerStub = rpc.CombinerStub(channel)
+        self.modelStub = rpc.ModelServiceStub(channel)
+
+        logger.info("Successfully established {} connection to {}:{}".format("secure" if secure else "insecure",
+                                                                             host,
+                                                                             port))
+
+        logger.info("Using {} compute package.".format(
+            client_config["package"]))
+
+    def _disconnect(self):
+        """Disconnect from the combiner."""
+        self.channel.close()
+
     def _detach(self):
         """Detach from the FEDn network (disconnect from combiner)"""
         # Setting _attached to False will make all processing threads return
         if not self._attached:
-            print("Client is not attached.", flush=True)
+            logger.info("Client is not attached.")
 
         self._attached = False
         # Close gRPC connection to combiner
@@ -123,7 +250,7 @@ class Client:
         """Attach to the FEDn network (connect to combiner)"""
         # Ask controller for a combiner and connect to that combiner.
         if self._attached:
-            print("Client is already attached. ", flush=True)
+            logger.info("Client is already attached. ")
             return None
 
         client_config = self._assign()
@@ -137,21 +264,21 @@ class Client:
         """Initialize the helper class for the client.
 
         :param client_config: A configuration dictionary containing connection information for
-        the discovery service (controller) and settings governing e.g.
-        client-combiner assignment behavior.
+        | the discovery service (controller) and settings governing e.g.
+        | client-combiner assignment behavior.
         :type client_config: dict
+        :return:
         """
 
-        if 'model_type' in client_config.keys():
-            self.helper = get_helper(client_config['model_type'])
+        if 'helper_type' in client_config.keys():
+            self.helper = get_helper(client_config['helper_type'])
 
     def _subscribe_to_combiner(self, config):
         """Listen to combiner message stream and start all processing threads.
 
         :param config: A configuration dictionary containing connection information for
-        the discovery service (controller) and settings governing e.g.
-        client-combiner assignment behavior.
-
+        | the discovery service (controller) and settings governing e.g.
+        | client-combiner assignment behavior.
         """
 
         # Start sending heartbeats to the combiner.
@@ -174,10 +301,10 @@ class Client:
         """ Initialize the dispatcher for the client.
 
         :param config: A configuration dictionary containing connection information for
-        the discovery service (controller) and settings governing e.g.
-        client-combiner assignment behavior.
+        | the discovery service (controller) and settings governing e.g.
+        | client-combiner assignment behavior.
         :type config: dict
-
+        :return:
         """
         if config['remote_compute_context']:
             pr = PackageRuntime(os.getcwd(), os.getcwd())
@@ -196,19 +323,16 @@ class Client:
                 if retval:
                     break
                 time.sleep(60)
-                print("No compute package available... retrying in 60s Trying {} more times.".format(
-                    tries), flush=True)
+                logger.warning("Compute package not available. Retrying in 60 seconds. {} attempts remaining.".format(tries))
                 tries -= 1
 
             if retval:
                 if 'checksum' not in config:
-                    print(
-                        "\nWARNING: Skipping security validation of local package!, make sure you trust the package source.\n",
-                        flush=True)
+                    logger.warning("Bypassing security validation for local package. Ensure the package source is trusted.")
                 else:
                     checks_out = pr.validate(config['checksum'])
                     if not checks_out:
-                        print("Validation was enforced and invalid, client closing!")
+                        logger.critical("Validation of local package failed. Client terminating.")
                         self.error_state = True
                         return
 
@@ -217,10 +341,12 @@ class Client:
 
             self.dispatcher = pr.dispatcher(self.run_path)
             try:
-                print("Running Dispatcher for entrypoint: startup", flush=True)
+                logger.info("Initiating Dispatcher with entrypoint set to: startup")
                 self.dispatcher.run_cmd("startup")
             except KeyError:
                 pass
+            except Exception as e:
+                logger.error(f"Caught exception: {type(e).__name__}")
         else:
             # TODO: Deprecate
             dispatch_config = {'entry_points':
@@ -232,117 +358,18 @@ class Client:
             copy_tree(from_path, self.run_path)
             self.dispatcher = Dispatcher(dispatch_config, self.run_path)
 
-    def _assign(self):
-        """Contacts the controller and asks for combiner assignment.
-
-        :return: A configuration dictionary containing connection information for combiner.
-        :rtype: dict
-        """
-
-        print("Asking for assignment!", flush=True)
-        while True:
-            status, response = self.connector.assign()
-            if status == Status.TryAgain:
-                print(response, flush=True)
-                time.sleep(5)
-                continue
-            if status == Status.Assigned:
-                client_config = response
-                break
-            if status == Status.UnAuthorized:
-                print(response, flush=True)
-                sys.exit("Exiting: Unauthorized")
-            if status == Status.UnMatchedConfig:
-                print(response, flush=True)
-                sys.exit("Exiting: UnMatchedConfig")
-            time.sleep(5)
-            print(".", end=' ', flush=True)
-
-        print("Got assigned!", flush=True)
-        return client_config
-
-    def _connect(self, client_config):
-        """Connect to assigned combiner.
-
-        :param client_config: A configuration dictionary containing connection information for
-        the combiner.
-        :type client_config: dict
-        """
-
-        # TODO use the client_config['certificate'] for setting up secure comms'
-        host = client_config['host']
-        port = client_config['port']
-        secure = False
-        if client_config['fqdn'] != "None":
-            host = client_config['fqdn']
-            # assuming https if fqdn is used
-            port = 443
-        print(f"CLIENT: Connecting to combiner host: {host}:{port}", flush=True)
-
-        if client_config['certificate']:
-            print("CLIENT: using certificate from Reducer for GRPC channel")
-            secure = True
-            cert = base64.b64decode(
-                client_config['certificate'])  # .decode('utf-8')
-            credentials = grpc.ssl_channel_credentials(root_certificates=cert)
-            channel = grpc.secure_channel("{}:{}".format(host, str(port)), credentials)
-        elif os.getenv("FEDN_GRPC_ROOT_CERT_PATH"):
-            secure = True
-            print("CLIENT: using root certificate from environment variable for GRPC channel")
-            with open(os.environ["FEDN_GRPC_ROOT_CERT_PATH"], 'rb') as f:
-                credentials = grpc.ssl_channel_credentials(f.read())
-            channel = grpc.secure_channel("{}:{}".format(host, str(port)), credentials)
-        elif self.config['secure']:
-            secure = True
-            print("CLIENT: using CA certificate for GRPC channel")
-            cert = ssl.get_server_certificate((host, port))
-
-            credentials = grpc.ssl_channel_credentials(cert.encode('utf-8'))
-            if self.config['token']:
-                token = self.config['token']
-                auth_creds = grpc.metadata_call_credentials(GrpcAuth(token))
-                channel = grpc.secure_channel("{}:{}".format(host, str(port)), grpc.composite_channel_credentials(credentials, auth_creds))
-            else:
-                channel = grpc.secure_channel("{}:{}".format(host, str(port)), credentials)
-        else:
-            print("CLIENT: using insecure GRPC channel")
-            if port == 443:
-                port = 80
-            channel = grpc.insecure_channel("{}:{}".format(
-                host,
-                str(port)))
-
-        self.channel = channel
-
-        self.connection = rpc.ConnectorStub(channel)
-        self.orchestrator = rpc.CombinerStub(channel)
-        self.models = rpc.ModelServiceStub(channel)
-
-        print("Client: {} connected {} to {}:{}".format(self.name,
-                                                        "SECURED" if secure else "INSECURE",
-                                                        host,
-                                                        port),
-              flush=True)
-
-        print("Client: Using {} compute package.".format(
-            client_config["package"]))
-
-    def _disconnect(self):
-        self.channel.close()
-
     def get_model(self, id):
         """Fetch a model from the assigned combiner.
-        Downloads the model update object via a gRPC streaming channel, Download.
+        Downloads the model update object via a gRPC streaming channel.
 
         :param id: The id of the model update object.
         :type id: str
         :return: The model update object.
         :rtype: BytesIO
-
         """
         data = BytesIO()
 
-        for part in self.models.Download(fedn.ModelRequest(id=id)):
+        for part in self.modelStub.Download(fedn.ModelRequest(id=id), metadata=self.metadata):
 
             if part.status == fedn.ModelStatus.IN_PROGRESS:
                 data.write(part.data)
@@ -357,7 +384,6 @@ class Client:
 
     def set_model(self, model, id):
         """Send a model update to the assigned combiner.
-
         Uploads the model updated object via a gRPC streaming channel, Upload.
 
         :param model: The model update object.
@@ -398,7 +424,7 @@ class Client:
                 if not b:
                     break
 
-        result = self.models.Upload(upload_request_generator(bt))
+        result = self.modelStub.Upload(upload_request_generator(bt), metadata=self.metadata)
 
         return result
 
@@ -412,11 +438,12 @@ class Client:
         r = fedn.ClientAvailableMessage()
         r.sender.name = self.name
         r.sender.role = fedn.WORKER
-        metadata = [('client', r.sender.name)]
+        # Add client to metadata
+        self._add_grpc_metadata('client', self.name)
 
         while True:
             try:
-                for request in self.orchestrator.ModelUpdateRequestStream(r, metadata=metadata):
+                for request in self.combinerStub.ModelUpdateRequestStream(r, metadata=self.metadata):
                     if request.sender.role == fedn.COMBINER:
                         # Process training request
                         self._send_status("Received model update request.", log_level=fedn.Status.AUDIT,
@@ -441,7 +468,6 @@ class Client:
     def _listen_to_model_validation_request_stream(self):
         """Subscribe to the model validation request stream.
 
-
         :return: None
         :rtype: None
         """
@@ -451,7 +477,7 @@ class Client:
         r.sender.role = fedn.WORKER
         while True:
             try:
-                for request in self.orchestrator.ModelValidationRequestStream(r):
+                for request in self.combinerStub.ModelValidationRequestStream(r, metadata=self.metadata):
                     # Process validation request
                     _ = request.model_id
                     self._send_status("Recieved model validation request.", log_level=fedn.Status.AUDIT,
@@ -468,86 +494,6 @@ class Client:
             if not self._attached:
                 return
 
-    def process_request(self):
-        """Process training and validation tasks. """
-        while True:
-
-            if not self._attached:
-                return
-
-            try:
-                (task_type, request) = self.inbox.get(timeout=1.0)
-                if task_type == 'train':
-
-                    tic = time.time()
-                    self.state = ClientState.training
-                    model_id, meta = self._process_training_request(
-                        request.model_id)
-                    processing_time = time.time()-tic
-                    meta['processing_time'] = processing_time
-                    meta['config'] = request.data
-
-                    if model_id is not None:
-                        # Send model update to combiner
-                        update = fedn.ModelUpdate()
-                        update.sender.name = self.name
-                        update.sender.role = fedn.WORKER
-                        update.receiver.name = request.sender.name
-                        update.receiver.role = request.sender.role
-                        update.model_id = request.model_id
-                        update.model_update_id = str(model_id)
-                        update.timestamp = str(datetime.now())
-                        update.correlation_id = request.correlation_id
-                        update.meta = json.dumps(meta)
-                        # TODO: Check responses
-                        _ = self.orchestrator.SendModelUpdate(update)
-                        self._send_status("Model update completed.", log_level=fedn.Status.AUDIT,
-                                          type=fedn.StatusType.MODEL_UPDATE, request=update)
-
-                    else:
-                        self._send_status("Client {} failed to complete model update.",
-                                          log_level=fedn.Status.WARNING,
-                                          request=request)
-                    self.state = ClientState.idle
-                    self.inbox.task_done()
-
-                elif task_type == 'validate':
-                    self.state = ClientState.validating
-                    metrics = self._process_validation_request(
-                        request.model_id, request.is_inference)
-
-                    if metrics is not None:
-                        # Send validation
-                        validation = fedn.ModelValidation()
-                        validation.sender.name = self.name
-                        validation.sender.role = fedn.WORKER
-                        validation.receiver.name = request.sender.name
-                        validation.receiver.role = request.sender.role
-                        validation.model_id = str(request.model_id)
-                        validation.data = json.dumps(metrics)
-                        self.str = str(datetime.now())
-                        validation.timestamp = self.str
-                        validation.correlation_id = request.correlation_id
-                        _ = self.orchestrator.SendModelValidation(
-                            validation)
-
-                        # Set status type
-                        if request.is_inference:
-                            status_type = fedn.StatusType.INFERENCE
-                        else:
-                            status_type = fedn.StatusType.MODEL_VALIDATION
-
-                        self._send_status("Model validation completed.", log_level=fedn.Status.AUDIT,
-                                          type=status_type, request=validation)
-                    else:
-                        self._send_status("Client {} failed to complete model validation.".format(self.name),
-                                          log_level=fedn.Status.WARNING, request=request)
-
-                    self.state = ClientState.idle
-                    self.inbox.task_done()
-            except queue.Empty:
-                pass
-
     def _process_training_request(self, model_id):
         """Process a training (model update) request.
 
@@ -555,7 +501,6 @@ class Client:
         :type model_id: str
         :return: The model id of the updated model, or None if the update failed. And a dict with metadata.
         :rtype: tuple
-
         """
 
         self._send_status(
@@ -575,11 +520,14 @@ class Client:
             outpath = self.helper.get_tmp_path()
             tic = time.time()
             # TODO: Check return status, fail gracefully
+
             self.dispatcher.run_cmd("train {} {}".format(inpath, outpath))
+
             meta['exec_training'] = time.time() - tic
 
             tic = time.time()
             out_model = None
+
             with open(outpath, "rb") as fr:
                 out_model = io.BytesIO(fr.read())
 
@@ -598,10 +546,14 @@ class Client:
             os.unlink(outpath+'-metadata')
 
         except Exception as e:
-            print("ERROR could not process training request due to error: {}".format(
-                e), flush=True)
+            logger.error("Could not process training request due to error: {}".format(e))
             updated_model_id = None
             meta = {'status': 'failed', 'error': str(e)}
+
+        # Push model update to combiner server
+        updated_model_id = uuid.uuid4()
+        self.set_model(out_model, str(updated_model_id))
+        meta['upload_model'] = time.time() - tic
 
         self.state = ClientState.idle
 
@@ -643,13 +595,93 @@ class Client:
             os.unlink(outpath)
 
         except Exception as e:
-            print("Validation failed with exception {}".format(e), flush=True)
+            logger.warning("Validation failed with exception {}".format(e))
             raise
             self.state = ClientState.idle
             return None
 
         self.state = ClientState.idle
         return validation
+
+    def process_request(self):
+        """Process training and validation tasks. """
+        while True:
+
+            if not self._attached:
+                return
+
+            try:
+                (task_type, request) = self.inbox.get(timeout=1.0)
+                if task_type == 'train':
+
+                    tic = time.time()
+                    self.state = ClientState.training
+                    model_id, meta = self._process_training_request(
+                        request.model_id)
+                    processing_time = time.time()-tic
+                    meta['processing_time'] = processing_time
+                    meta['config'] = request.data
+
+                    if model_id is not None:
+                        # Send model update to combiner
+                        update = fedn.ModelUpdate()
+                        update.sender.name = self.name
+                        update.sender.role = fedn.WORKER
+                        update.receiver.name = request.sender.name
+                        update.receiver.role = request.sender.role
+                        update.model_id = request.model_id
+                        update.model_update_id = str(model_id)
+                        update.timestamp = str(datetime.now())
+                        update.correlation_id = request.correlation_id
+                        update.meta = json.dumps(meta)
+                        # TODO: Check responses
+                        _ = self.combinerStub.SendModelUpdate(update, metadata=self.metadata)
+                        self._send_status("Model update completed.", log_level=fedn.Status.AUDIT,
+                                          type=fedn.StatusType.MODEL_UPDATE, request=update)
+
+                    else:
+                        self._send_status("Client {} failed to complete model update.",
+                                          log_level=fedn.Status.WARNING,
+                                          request=request)
+                    self.state = ClientState.idle
+                    self.inbox.task_done()
+
+                elif task_type == 'validate':
+                    self.state = ClientState.validating
+                    metrics = self._process_validation_request(
+                        request.model_id, request.is_inference)
+
+                    if metrics is not None:
+                        # Send validation
+                        validation = fedn.ModelValidation()
+                        validation.sender.name = self.name
+                        validation.sender.role = fedn.WORKER
+                        validation.receiver.name = request.sender.name
+                        validation.receiver.role = request.sender.role
+                        validation.model_id = str(request.model_id)
+                        validation.data = json.dumps(metrics)
+                        self.str = str(datetime.now())
+                        validation.timestamp = self.str
+                        validation.correlation_id = request.correlation_id
+                        _ = self.combinerStub.SendModelValidation(
+                            validation, metadata=self.metadata)
+
+                        # Set status type
+                        if request.is_inference:
+                            status_type = fedn.StatusType.INFERENCE
+                        else:
+                            status_type = fedn.StatusType.MODEL_VALIDATION
+
+                        self._send_status("Model validation completed.", log_level=fedn.Status.AUDIT,
+                                          type=status_type, request=validation)
+                    else:
+                        self._send_status("Client {} failed to complete model validation.".format(self.name),
+                                          log_level=fedn.Status.WARNING, request=request)
+
+                    self.state = ClientState.idle
+                    self.inbox.task_done()
+            except queue.Empty:
+                pass
 
     def _handle_combiner_failure(self):
         """ Register failed combiner connection."""
@@ -665,17 +697,17 @@ class Client:
         :return: None if the client is detached.
         :rtype: None
         """
-
         while True:
             heartbeat = fedn.Heartbeat(sender=fedn.Client(
                 name=self.name, role=fedn.WORKER))
             try:
-                self.connection.SendHeartbeat(heartbeat)
+                self.connectorStub.SendHeartbeat(heartbeat, metadata=self.metadata)
                 self._missed_heartbeat = 0
             except grpc.RpcError as e:
                 status_code = e.code()
-                print("CLIENT heartbeat: GRPC ERROR {} retrying..".format(
-                    status_code.name), flush=True)
+                logger.warning("Client heartbeat: GRPC error, {}. Retrying.".format(
+                    status_code.name))
+                logger.debug(e)
                 self._handle_combiner_failure()
 
             time.sleep(update_frequency)
@@ -709,33 +741,7 @@ class Client:
         self.logs.append(
             "{} {} LOG LEVEL {} MESSAGE {}".format(str(datetime.now()), status.sender.name, status.log_level,
                                                    status.status))
-        _ = self.connection.SendStatus(status)
-
-    def run_web(self):
-        """Starts a local logging UI (Flask app) serving on port 8080.
-
-        Currently not in use.
-
-        """
-        app = Flask(__name__)
-
-        @ app.route('/')
-        def index():
-            """
-
-            :return:
-            """
-            logs_fancy = str()
-            for log in self.logs:
-                logs_fancy += "<p>" + log + "</p>\n"
-
-            return page.format(client=self.name, state=ClientStateToString(self.state), style=style, logs=logs_fancy)
-
-        self._original_stdout = sys.stdout
-        sys.stdout = open(os.devnull, 'w')
-        app.run(host="0.0.0.0", port="8080")
-        sys.stdout.close()
-        sys.stdout = self._original_stdout
+        _ = self.connectorStub.SendStatus(status, metadata=self.metadata)
 
     def run(self):
         """ Run the client. """
@@ -744,20 +750,17 @@ class Client:
             old_state = self.state
             while True:
                 time.sleep(1)
-                cnt += 1
+                if cnt == 0:
+                    logger.info("Client is active, waiting for model update requests.")
+                    cnt = 1
                 if self.state != old_state:
-                    print("{}:CLIENT in {} state".format(datetime.now().strftime(
-                        '%Y-%m-%d %H:%M:%S'), ClientStateToString(self.state)), flush=True)
-                if cnt > 5:
-                    print("{}:CLIENT active".format(
-                        datetime.now().strftime('%Y-%m-%d %H:%M:%S')), flush=True)
-                    cnt = 0
+                    logger.info("Client in {} state.".format(ClientStateToString(self.state)))
                 if not self._attached:
-                    print("Detatched from combiner.", flush=True)
+                    logger.info("Detached from combiner.")
                     # TODO: Implement a check/condition to ulitmately close down if too many reattachment attepts have failed. s
                     self._attach()
                     self._subscribe_to_combiner(self.config)
                 if self.error_state:
                     return
         except KeyboardInterrupt:
-            print("Ok, exiting..")
+            logger.info("Shutting down.")

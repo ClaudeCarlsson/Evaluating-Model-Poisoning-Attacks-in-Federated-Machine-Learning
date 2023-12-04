@@ -1,0 +1,34 @@
+[
+    {
+        "_id": "6569eeee6cfa8cc8faac0dd2",
+        "sender": {
+            "name": "client1",
+            "role": "WORKER"
+        },
+        "receiver": {
+            "role": "COMBINER",
+            "name": "combiner"
+        },
+        "modelId": "77e12fda-743c-4390-947d-3ba18624e4a3",
+        "data": "{\"training_loss\": 2.2778611183166504, \"training_accuracy\": 0.12166666984558105, \"test_loss\": 2.28581166267395, \"test_accuracy\": 0.12399999797344208}",
+        "correlationId": "176b22c2-a14b-400d-8e53-d5dfc3b6cc0c",
+        "timestamp": "2023-12-01 14:34:22.414277",
+        "meta": ""
+    },
+    {
+        "_id": "6569eef26cfa8cc8faac0dd8",
+        "sender": {
+            "name": "client1",
+            "role": "WORKER"
+        },
+        "receiver": {
+            "role": "COMBINER",
+            "name": "combiner"
+        },
+        "modelId": "c99c8e05-faf6-4460-b597-2ada1a133dc6",
+        "data": "{\"training_loss\": 2.2171154022216797, \"training_accuracy\": 0.3140000104904175, \"test_loss\": 2.2334959506988525, \"test_accuracy\": 0.24400000274181366}",
+        "correlationId": "535e10d1-1e58-4e27-bd59-ae583415cf74",
+        "timestamp": "2023-12-01 14:34:26.700325",
+        "meta": ""
+    }
+]
