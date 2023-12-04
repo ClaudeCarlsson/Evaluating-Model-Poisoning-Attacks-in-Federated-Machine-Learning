@@ -13,8 +13,8 @@ for (( i=1; i<=NUM_CLIENTS; i++ ))
 do
   docker run -d \
   -v $PWD/client.yaml:/app/client.yaml \
-  -v $PWD/data/clients/$i:/var/data \
+  -v $PWD/data/backdoor_clients/$i:/var/data \
   -e ENTRYPOINT_OPTS=--data_path=/var/data/mnist.pt \
   --network=fedn_default \
-  grad-inv-fedn-client run client -in client.yaml --name grad-inv-client$i
+  ghcr.io/scaleoutsystems/fedn/fedn:master-mnist-pytorch run client -in client.yaml --name client-backdoor$i
 done

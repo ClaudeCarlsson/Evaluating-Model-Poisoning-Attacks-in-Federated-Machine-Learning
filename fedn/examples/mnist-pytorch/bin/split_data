@@ -1,36 +1,42 @@
 #!./.mnist-pytorch/bin/python
 import os
 from math import floor
-
 import fire
 import torch
 import torchvision
 
-
-def splitset(dataset, parts):
-    n = dataset.shape[0]
-    local_n = floor(n/parts)
-    result = []
-    for i in range(parts):
-        result.append(dataset[i*local_n: (i+1)*local_n])
-    return result
-
+def splitset(dataset, targets, parts):
+    n = len(dataset)
+    local_n = floor(n / parts)
+    result_data = []
+    result_targets = []
+    for _ in range(parts):
+        # Sample with replacement (Array of length local_n with ints ranging from 0 to n)
+        indices = torch.randint(0, n, (local_n,))
+        result_data.append(dataset[indices])
+        result_targets.append(targets[indices])
+    return result_data, result_targets
 
 def split(out_dir='data', n_splits=2):
     # Make dir
     if not os.path.exists(f'{out_dir}/clients'):
         os.mkdir(f'{out_dir}/clients')
 
-    # Load and convert to dict
+    # Load data
     train_data = torchvision.datasets.MNIST(
         root=f'{out_dir}/train', transform=torchvision.transforms.ToTensor, train=True)
     test_data = torchvision.datasets.MNIST(
         root=f'{out_dir}/test', transform=torchvision.transforms.ToTensor, train=False)
+
+    # Convert to dict with splits that sample with replacement
+    x_train, y_train = splitset(train_data.data, train_data.targets, n_splits)
+    x_test, y_test = splitset(test_data.data, test_data.targets, n_splits)
+
     data = {
-        'x_train': splitset(train_data.data, n_splits),
-        'y_train': splitset(train_data.targets, n_splits),
-        'x_test': splitset(test_data.data, n_splits),
-        'y_test': splitset(test_data.targets, n_splits),
+        'x_train': x_train,
+        'y_train': y_train,
+        'x_test': x_test,
+        'y_test': y_test,
     }
 
     # Make splits
@@ -45,7 +51,6 @@ def split(out_dir='data', n_splits=2):
             'y_test': data['y_test'][i],
         },
             f'{subdir}/mnist.pt')
-
 
 if __name__ == '__main__':
     fire.Fire(split)
