@@ -1,0 +1,122 @@
+{
+    "Round 1":{
+        "training_accuracy":0.1076600003,
+        "training_loss":2.2627047348,
+        "test_accuracy":0.1046399996,
+        "test_loss":2.2635856342
+    },
+    "Round 2":{
+        "training_accuracy":0.2368800014,
+        "training_loss":2.1946087456,
+        "test_accuracy":0.2312600011,
+        "test_loss":2.1944109631
+    },
+    "Round 3":{
+        "training_accuracy":0.51171,
+        "training_loss":1.7522834778,
+        "test_accuracy":0.5149400055,
+        "test_loss":1.7408534765
+    },
+    "Round 4":{
+        "training_accuracy":0.6630500031,
+        "training_loss":1.0915028119,
+        "test_accuracy":0.6714399981,
+        "test_loss":1.0752639365
+    },
+    "Round 5":{
+        "training_accuracy":0.7464199996,
+        "training_loss":0.8095702577,
+        "test_accuracy":0.7531000042,
+        "test_loss":0.7976747751
+    },
+    "Round 6":{
+        "training_accuracy":0.7905466604,
+        "training_loss":0.6766887259,
+        "test_accuracy":0.7963000011,
+        "test_loss":0.666381588
+    },
+    "Round 7":{
+        "training_accuracy":0.8208633327,
+        "training_loss":0.5928613782,
+        "test_accuracy":0.8256600022,
+        "test_loss":0.5818767214
+    },
+    "Round 8":{
+        "training_accuracy":0.8411133313,
+        "training_loss":0.5377775836,
+        "test_accuracy":0.8433399987,
+        "test_loss":0.525861553
+    },
+    "Round 9":{
+        "training_accuracy":0.8538566661,
+        "training_loss":0.5009933639,
+        "test_accuracy":0.8553800058,
+        "test_loss":0.4886568022
+    },
+    "Round 10":{
+        "training_accuracy":0.8622300029,
+        "training_loss":0.4748496222,
+        "test_accuracy":0.8636800027,
+        "test_loss":0.4627513456
+    },
+    "Round 11":{
+        "training_accuracy":0.8692933321,
+        "training_loss":0.4545556498,
+        "test_accuracy":0.8699399996,
+        "test_loss":0.4429843557
+    },
+    "Round 12":{
+        "training_accuracy":0.8746400023,
+        "training_loss":0.437873534,
+        "test_accuracy":0.8743799949,
+        "test_loss":0.4268972683
+    },
+    "Round 13":{
+        "training_accuracy":0.8790933371,
+        "training_loss":0.4238029933,
+        "test_accuracy":0.8792199993,
+        "test_loss":0.4134020817
+    },
+    "Round 14":{
+        "training_accuracy":0.8828600001,
+        "training_loss":0.4117459273,
+        "test_accuracy":0.8827999997,
+        "test_loss":0.4019618011
+    },
+    "Round 15":{
+        "training_accuracy":0.8864100003,
+        "training_loss":0.4009304762,
+        "test_accuracy":0.8868000031,
+        "test_loss":0.391691407
+    },
+    "Round 16":{
+        "training_accuracy":0.8893599916,
+        "training_loss":0.3911931336,
+        "test_accuracy":0.8896999979,
+        "test_loss":0.3823985052
+    },
+    "Round 17":{
+        "training_accuracy":0.892179997,
+        "training_loss":0.3822673655,
+        "test_accuracy":0.8921600032,
+        "test_loss":0.3739547789
+    },
+    "Round 18":{
+        "training_accuracy":0.8946433353,
+        "training_loss":0.3741086066,
+        "test_accuracy":0.8940399933,
+        "test_loss":0.3663811231
+    },
+    "Round 19":{
+        "training_accuracy":0.8969633317,
+        "training_loss":0.3665440202,
+        "test_accuracy":0.8960399961,
+        "test_loss":0.3593224382
+    },
+    "Round 20":{
+        "training_accuracy":0.8990633345,
+        "training_loss":0.3595536411,
+        "test_accuracy":0.8980599928,
+        "test_loss":0.3528655374
+    }
+}
