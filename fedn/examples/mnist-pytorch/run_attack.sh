@@ -16,12 +16,12 @@ if [ "$n_clients" -lt 20 ]; then
 fi
 
 # Directories containing the scripts
-directories=("Gradient_X10_Attack" "Gradient_X100_Attack" "Gradient_Inv_Attack" "Standard_0.6")
+directories=("bin" "Gradient_X10_Attack" "Gradient_X100_Attack" "Gradient_Inv_Attack" "Standard_0.6")
 
 # Loop through each directory and set executable permissions for .sh files
 for dir in "${directories[@]}"; do
     if [ -d "$dir" ]; then
-        chmod +x $dir/*.sh
+        chmod +x $dir/*
     else
         echo "Directory $dir not found."
     fi
