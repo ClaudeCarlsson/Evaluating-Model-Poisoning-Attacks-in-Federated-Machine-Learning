@@ -158,6 +158,7 @@ for attack in "${attacks[@]}"; do
             # Perform calculations
             product=$((n_clients * mal_ratio / 100))
             remaining=$((n_clients - product))
+            n_documents=$((n_clients * rounds))
             #fraction=$(echo "scale=2; $mal_ratio / 100" | bc)
 
             echo "Performing attack"
@@ -183,7 +184,6 @@ for attack in "${attacks[@]}"; do
             python3 run_training.py --rounds $rounds --n_clients $n_clients
 
             echo "Attack complete, waiting for results"
-            sleep 5
 
             # Determine the output file path based on the attack value
             if [ "$attack" = "1" ]; then
@@ -202,9 +202,8 @@ for attack in "${attacks[@]}"; do
             fi
 
             echo "Downloading the results"
-            sleep 5
             # Run the Python script with the output file path
-            python3 download.py $OUTPUT_FILE
+            python3 download.py $OUTPUT_FILE $n_documents
 
             echo "Experiment done"
         done
