@@ -46,9 +46,9 @@ echo "Installation complete"
 echo "Building images"
 
 # Navigate to Gradient_X10_Attack and build image
-#cd Gradient_X10_Attack > /dev/null 2>&1
-#docker build . -t grad-x10-fedn-client > /dev/null 2>&1
-#cd ..
+cd Gradient_X10_Attack > /dev/null 2>&1
+docker build . -t grad-x10-fedn-client > /dev/null 2>&1
+cd ..
 
 # Navigate to Gradient_X100_Attack and build image
 cd Gradient_X100_Attack
@@ -56,9 +56,9 @@ docker build . -t grad-x100-fedn-client > /dev/null 2>&1
 cd ..
 
 # Navigate to Gradient_Inv_Attack and build image
-#cd Gradient_Inv_Attack
-#docker build . -t grad-inv-fedn-client > /dev/null 2>&1
-#cd ..
+cd Gradient_Inv_Attack
+docker build . -t grad-inv-fedn-client > /dev/null 2>&1
+cd ..
 
 echo "Images have been successfully built"
 
@@ -99,108 +99,114 @@ mkdir -p "$ATTACK_DIR_4"
 mkdir -p "$ATTACK_DIR_5"
 
 # Attacks
-attacks=( 4 5)
-mal_ratios=(10 20)
+attacks=(1 4 5)
+mal_ratios=(5 10 15 20)
 
 for attack in "${attacks[@]}"; do
     echo "Performing attack: $attack"
     for mal_ratio in "${mal_ratios[@]}"; do
-        # Initialization to reset the experiment
-	    echo "Removing old containers and prepare a new experiment"
-        docker-compose down > /dev/null 2>&1
+        # Loop 3 times
+        for (( i=1; i<=3; i++ ))
+        do
+            # Initialization to reset the experiment
+            echo "Removing old containers and prepare a new experiment"
+            docker-compose down > /dev/null 2>&1
 
-        # Function to stop Docker containers safely
-        stop_containers() {
-            containers=$(docker ps -q --filter ancestor="$1")
-            if [ -n "$containers" ]; then
-                docker stop $containers > /dev/null 2>&1
+            # Function to stop Docker containers safely
+            stop_containers() {
+                containers=$(docker ps -q --filter ancestor="$1")
+                if [ -n "$containers" ]; then
+                    docker stop $containers > /dev/null 2>&1
+                fi
+            }
+
+            # Stop containers with specific ancestor images
+            stop_containers "ghcr.io/scaleoutsystems/fedn/fedn:0.5.0-mnist-pytorch"
+            stop_containers "ghcr.io/scaleoutsystems/fedn/fedn:master-mnist-pytorch"
+            stop_containers "grad-fedn-client"
+            stop_containers "grad-x10-fedn-client"
+            stop_containers "grad-x100-fedn-client"
+            stop_containers "grad-inv-fedn-client"
+
+            echo "Cleanup complete, restarting experiment"
+            python3 bin/split_data --n_splits=$n_clients > /dev/null 2>&1
+            python3 bin/random_seed > /dev/null 2>&1
+
+            docker-compose up -d > /dev/null 2>&1
+
+            # String to wait for
+            wait_for_string="COMBINER: combiner started, ready for requests."
+
+            # Wait for the string in the docker-compose logs
+            while : ; do
+                # Fetch the latest logs and check for the specific string
+                if docker-compose logs | grep "$wait_for_string"; then
+                    echo "Restart complete"
+                    break
+                else
+                    echo "Waiting for reducer and combiner..."
+                    sleep 2 # Check every 2 seconds
+                fi
+            done
+
+            # Upload package and download the client.yaml file
+            echo "Uploading the package"
+            python3 upload.py
+            echo "Downloading the client.yaml file"
+            python3 client.py
+
+            # Perform calculations
+            product=$((n_clients * mal_ratio / 100))
+            remaining=$((n_clients - product))
+            #fraction=$(echo "scale=2; $mal_ratio / 100" | bc)
+
+            echo "Performing attack"
+            echo "Starting clients"
+            # Start clients
+            if [ "$attack" = "1" ]; then
+                Gradient_X10_Attack/run_grad_clients.sh $product > /dev/null 2>&1
+            elif [ "$attack" = "2" ]; then
+                Gradient_X100_Attack/run_grad_clients.sh $product > /dev/null 2>&1
+            elif [ "$attack" = "3" ]; then
+                Gradient_Inv_Attack/run_grad_inv_clients.sh $product > /dev/null 2>&1
+            elif [ "$attack" = "4" ]; then
+                Label_Flipping/poison_data.py data 0.8
+                Label_Flipping/run_poisoned_clients.sh $product > /dev/null 2>&1
+            elif [ "$attack" = "5" ]; then
+                Backdoor_Attack/backdoor_attack.py data 5 0.8
+                Backdoor_Attack/run_poisoned_clients.sh $product > /dev/null 2>&1
             fi
-        }
+            Standard_0.6/run_clients.sh $remaining > /dev/null 2>&1
 
-        # Stop containers with specific ancestor images
-        stop_containers "ghcr.io/scaleoutsystems/fedn/fedn:0.5.0-mnist-pytorch"
-        stop_containers "ghcr.io/scaleoutsystems/fedn/fedn:master-mnist-pytorch"
-        stop_containers "grad-fedn-client"
-        stop_containers "grad-x10-fedn-client"
-        stop_containers "grad-x100-fedn-client"
-        stop_containers "grad-inv-fedn-client"
+            echo "Clients started"
+            # Run training
+            python3 run_training.py --rounds $rounds --n_clients $n_clients
 
-        echo "Cleanup complete, restarting experiment"
-        python3 bin/split_data --n_splits=$n_clients > /dev/null 2>&1
-        python3 bin/random_seed > /dev/null 2>&1
+            echo "Attack complete, waiting for results"
+            sleep 5
 
-        docker-compose up -d > /dev/null 2>&1
-
-        # String to wait for
-        wait_for_string="COMBINER: combiner started, ready for requests."
-
-        # Wait for the string in the docker-compose logs
-        while : ; do
-            # Fetch the latest logs and check for the specific string
-            if docker-compose logs | grep "$wait_for_string"; then
-                echo "Restart complete"
-                break
+            # Determine the output file path based on the attack value
+            if [ "$attack" = "1" ]; then
+                OUTPUT_FILE="${ATTACK_DIR_1}/${n_clients}_client_${mal_ratio}_${i}.json"
+            elif [ "$attack" = "2" ]; then
+                OUTPUT_FILE="${ATTACK_DIR_2}/${n_clients}_client_${mal_ratio}_${i}.json"
+            elif [ "$attack" = "3" ]; then
+                OUTPUT_FILE="${ATTACK_DIR_3}/${n_clients}_client_${mal_ratio}_${i}.json"
+            elif [ "$attack" = "4" ]; then
+                OUTPUT_FILE="${ATTACK_DIR_4}/${n_clients}_client_${mal_ratio}_${i}.json"
+            elif [ "$attack" = "5" ]; then
+                OUTPUT_FILE="${ATTACK_DIR_5}/${n_clients}_client_${mal_ratio}_${i}.json"
             else
-                echo "Waiting for reducer and combiner..."
-                sleep 2 # Check every 2 seconds
+                echo "Invalid attack value"
+                exit 1
             fi
+
+            echo "Downloading the results"
+            sleep 5
+            # Run the Python script with the output file path
+            python3 download.py $OUTPUT_FILE
+
+            echo "Experiment done"
         done
-
-        # Upload package and download the client.yaml file
-        echo "Uploading the package"
-        python3 upload.py
-        echo "Downloading the client.yaml file"
-        python3 client.py
-
-        # Perform calculations
-        product=$((n_clients * mal_ratio / 100))
-        remaining=$((n_clients - product))
-        #fraction=$(echo "scale=2; $mal_ratio / 100" | bc)
-
-        echo "Performing attack"
-        echo "Starting clients"
-        # Start clients
-        if [ "$attack" = "1" ]; then
-            Gradient_X10_Attack/run_grad_clients.sh $product > /dev/null 2>&1
-        elif [ "$attack" = "2" ]; then
-            Gradient_X100_Attack/run_grad_clients.sh $product > /dev/null 2>&1
-        elif [ "$attack" = "3" ]; then
-            Gradient_Inv_Attack/run_grad_inv_clients.sh $product > /dev/null 2>&1
-        elif [ "$attack" = "4" ]; then
-            Label_Flipping/poison_data.py data 0.8
-            Label_Flipping/run_poisoned_clients.sh $product > /dev/null 2>&1
-        elif [ "$attack" = "5" ]; then
-            Backdoor_Attack/backdoor_attack.py data 5 0.8
-            Backdoor_Attack/run_poisoned_clients.sh $product > /dev/null 2>&1
-        fi
-        Standard_0.6/run_clients.sh $remaining > /dev/null 2>&1
-        echo "Clients started"
-        # Run training
-        python3 run_training.py --rounds $rounds --n_clients $n_clients
-
-        echo "Attack complete, saving result"
-        sleep 1
-
-        # Determine the output file path based on the attack value
-        if [ "$attack" = "1" ]; then
-            OUTPUT_FILE="${ATTACK_DIR_1}/${n_clients}_client_${mal_ratio}.json"
-        elif [ "$attack" = "2" ]; then
-            OUTPUT_FILE="${ATTACK_DIR_2}/${n_clients}_client_${mal_ratio}.json"
-        elif [ "$attack" = "3" ]; then
-            OUTPUT_FILE="${ATTACK_DIR_3}/${n_clients}_client_${mal_ratio}.json"
-        elif [ "$attack" = "4" ]; then
-            OUTPUT_FILE="${ATTACK_DIR_4}/${n_clients}_client_${mal_ratio}.json"
-        elif [ "$attack" = "5" ]; then
-            OUTPUT_FILE="${ATTACK_DIR_5}/${n_clients}_client_${mal_ratio}.json"
-        else
-            echo "Invalid attack value"
-            exit 1
-        fi
-
-        # Run the Python script with the output file path
-        python3 download.py "$OUTPUT_FILE"
-
-        echo "Experiment done"
-
     done
 done
