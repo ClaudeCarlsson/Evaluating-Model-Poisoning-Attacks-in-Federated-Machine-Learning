@@ -8,7 +8,7 @@ ARG REQUIREMENTS=""
 # Add FEDn and default configs
 COPY fedn /app/fedn
 COPY config/settings-client.yaml.template /app/config/settings-client.yaml
-COPY config/settings-combiner.yaml.template /app/config/settings-combiner.yaml
+COPY config/settings-combiner.yaml /app/config/settings-combiner.yaml
 COPY config/settings-reducer.yaml.template /app/config/settings-reducer.yaml
 COPY $REQUIREMENTS /app/config/requirements.txt
 
