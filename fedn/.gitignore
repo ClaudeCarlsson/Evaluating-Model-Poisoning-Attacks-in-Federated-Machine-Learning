@@ -168,13 +168,10 @@ media/visualisers/
 
 # Config templates
 config/settings-reducer.yaml
-config/settings-combiner.yaml
 config/extra-hosts-client.yaml
 config/extra-hosts-reducer.yaml
 config/settings-client.yaml
 config/settings-reducer.yaml
-config/settings-combiner.yaml
-
 ./tmp/*
 
 # Devcontainer
