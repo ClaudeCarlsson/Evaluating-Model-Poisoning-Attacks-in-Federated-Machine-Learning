@@ -103,7 +103,7 @@ attacks=(1 4 5)
 mal_ratios=(5 10 15 20)
 
 for attack in "${attacks[@]}"; do
-    echo "Performing attack: $attack"
+    echo "Performing attack number: $attack"
     for mal_ratio in "${mal_ratios[@]}"; do
         # Loop 3 times
         for (( i=1; i<=3; i++ ))
@@ -161,7 +161,6 @@ for attack in "${attacks[@]}"; do
             n_documents=$((n_clients * rounds))
             #fraction=$(echo "scale=2; $mal_ratio / 100" | bc)
 
-            echo "Performing attack"
             echo "Starting clients"
             # Start clients
             if [ "$attack" = "1" ]; then
@@ -176,10 +175,11 @@ for attack in "${attacks[@]}"; do
             elif [ "$attack" = "5" ]; then
                 Backdoor_Attack/backdoor_attack.py data 5 0.8
                 Backdoor_Attack/run_poisoned_clients.sh $product > /dev/null 2>&1
-            fi
             Standard_0.6/run_clients.sh $remaining > /dev/null 2>&1
 
             echo "Clients started"
+
+            echo "Performing attack $i/3"
             # Run training
             python3 run_training.py --rounds $rounds --n_clients $n_clients
 
