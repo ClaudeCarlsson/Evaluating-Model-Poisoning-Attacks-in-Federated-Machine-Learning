@@ -181,10 +181,10 @@ for attack in "${attacks[@]}"; do
                 Standard_0.6/run_clients.sh $remaining > /dev/null 2>&1
             elif [ "$attack" = "4" ]; then
                 Label_Flipping/poison_data.py data $mal_ratio
-                Label_Flipping/run_poisoned_clients.sh $product > /dev/null 2>&1
+                Label_Flipping/run_poisoned_clients.sh $((product + remaining)) > /dev/null 2>&1
             elif [ "$attack" = "5" ]; then
                 Backdoor_Attack/backdoor_attack.py data 5 $mal_ratio
-                Backdoor_Attack/run_poisoned_clients.sh $product > /dev/null 2>&1
+                Backdoor_Attack/run_poisoned_clients.sh $((product + remaining)) > /dev/null 2>&1
             fi
             
 
