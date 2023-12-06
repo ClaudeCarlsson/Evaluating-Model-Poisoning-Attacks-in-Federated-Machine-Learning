@@ -159,23 +159,26 @@ for attack in "${attacks[@]}"; do
             product=$((n_clients * mal_ratio / 100))
             remaining=$((n_clients - product))
             n_documents=$((n_clients * rounds))
-            #fraction=$(echo "scale=2; $mal_ratio / 100" | bc)
 
             echo "Starting clients"
             # Start clients
             if [ "$attack" = "1" ]; then
                 Gradient_X10_Attack/run_grad_clients.sh $product > /dev/null 2>&1
+                Standard_0.6/run_clients.sh $remaining > /dev/null 2>&1
             elif [ "$attack" = "2" ]; then
                 Gradient_X100_Attack/run_grad_clients.sh $product > /dev/null 2>&1
+                Standard_0.6/run_clients.sh $remaining > /dev/null 2>&1
             elif [ "$attack" = "3" ]; then
                 Gradient_Inv_Attack/run_grad_inv_clients.sh $product > /dev/null 2>&1
+                Standard_0.6/run_clients.sh $remaining > /dev/null 2>&1
             elif [ "$attack" = "4" ]; then
-                Label_Flipping/poison_data.py data 0.8
+                Label_Flipping/poison_data.py data $mal_ratio
                 Label_Flipping/run_poisoned_clients.sh $product > /dev/null 2>&1
             elif [ "$attack" = "5" ]; then
-                Backdoor_Attack/backdoor_attack.py data 5 0.8
+                Backdoor_Attack/backdoor_attack.py data 5 $mal_ratio
                 Backdoor_Attack/run_poisoned_clients.sh $product > /dev/null 2>&1
-            Standard_0.6/run_clients.sh $remaining > /dev/null 2>&1
+            fi
+            
 
             echo "Clients started"
 
