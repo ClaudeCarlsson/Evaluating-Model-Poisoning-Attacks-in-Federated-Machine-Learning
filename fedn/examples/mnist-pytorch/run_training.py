@@ -21,7 +21,7 @@ if __name__ == "__main__":
     client = APIClient(host="localhost", port=8092)
     time.sleep(2)
     while client.list_clients()["count"] != args.n_clients:
-        time.sleep(1)
+        time.sleep(3)
         print("Waiting for clients to be ready")
         print("Number of clients connected: " + str(client.list_clients()["count"]))
         print("Number of expected clients: " + str(args.n_clients))

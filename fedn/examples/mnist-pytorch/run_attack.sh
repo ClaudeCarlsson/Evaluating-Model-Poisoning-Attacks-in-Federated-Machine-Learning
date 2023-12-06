@@ -35,9 +35,13 @@ echo "All necessary files have been set to executable"
 echo "Downloading and installing requirements"
 pip install numpy > /dev/null 2>&1
 pip install pymongo > /dev/null 2>&1
+pip install dns  > /dev/null 2>&1
+pip install --upgrade httpcore  > /dev/null 2>&1
+pip install fire > /dev/null 2>&1
 pip install pyyaml > /dev/null 2>&1
 pip install fedn > /dev/null 2>&1
 pip install torch > /dev/null 2>&1
+pip install torchvision  > /dev/null 2>&1
 apt install python3-venv -y > /dev/null 2>&1
 apt install pip -y > /dev/null 2>&1
 apt install python3 -y> /dev/null 2>&1
@@ -129,25 +133,28 @@ for attack in "${attacks[@]}"; do
             stop_containers "grad-inv-fedn-client"
 
             echo "Cleanup complete, restarting experiment"
-            python3 bin/split_data --n_splits=$n_clients > /dev/null 2>&1
-            python3 bin/random_seed > /dev/null 2>&1
+            python3 bin/split_data --n_splits=$n_clients
+            python3 bin/random_seed
 
+	   
             docker-compose up -d > /dev/null 2>&1
+
 
             # String to wait for
             wait_for_string="COMBINER: combiner started, ready for requests."
 
             # Wait for the string in the docker-compose logs
-            while : ; do
-                # Fetch the latest logs and check for the specific string
-                if docker-compose logs | grep "$wait_for_string"; then
-                    echo "Restart complete"
-                    break
-                else
-                    echo "Waiting for reducer and combiner..."
-                    sleep 2 # Check every 2 seconds
-                fi
-            done
+            #while : ; do
+            #    # Fetch the latest logs and check for the specific string
+            #    if docker-compose logs | grep "$wait_for_string"; then
+            #        echo "Restart complete"
+            #        break
+            #    else
+            #       echo "Waiting for reducer and combiner..."
+            #       sleep 2 # Check every 2 seconds
+            #    fi
+            #done
+	    sleep 20
 
             # Upload package and download the client.yaml file
             echo "Uploading the package"
