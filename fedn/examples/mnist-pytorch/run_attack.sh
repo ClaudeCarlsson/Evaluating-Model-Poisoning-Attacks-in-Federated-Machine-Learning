@@ -33,6 +33,13 @@ chmod +x *.py
 echo "All necessary files have been set to executable"
 
 echo "Downloading and installing requirements"
+# apt packages
+apt install pip -y > /dev/null 2>&1
+apt install python3 -y > /dev/null 2>&1
+apt install python3-venv -y > /dev/null 2>&1
+apt install docker -y > /dev/null 2>&1
+apt install docker-compose -y > /dev/null 2>&1
+# pip packages
 pip install numpy > /dev/null 2>&1
 pip install pymongo > /dev/null 2>&1
 pip install dns  > /dev/null 2>&1
@@ -42,11 +49,6 @@ pip install pyyaml > /dev/null 2>&1
 pip install fedn > /dev/null 2>&1
 pip install torch > /dev/null 2>&1
 pip install torchvision  > /dev/null 2>&1
-apt install python3-venv -y > /dev/null 2>&1
-apt install pip -y > /dev/null 2>&1
-apt install python3 -y > /dev/null 2>&1
-apt install docker -y > /dev/null 2>&1
-apt install docker-compose -y > /dev/null 2>&1
 echo "Installation complete"
 
 echo "Building images"
@@ -105,8 +107,8 @@ mkdir -p "$ATTACK_DIR_4"
 mkdir -p "$ATTACK_DIR_5"
 
 # Attacks
-attacks=(1 4 5)
-mal_ratios=(5 10 15 20)
+attacks=(1 4)
+mal_ratios=(10 20)
 
 for attack in "${attacks[@]}"; do
     echo "Performing attack number: $attack"
@@ -140,20 +142,20 @@ for attack in "${attacks[@]}"; do
             docker-compose -f ../../docker-compose.yaml up -d > /dev/null 2>&1
 
             # String to wait for
-            #wait_for_string="COMBINER: combiner started, ready for requests."
+            wait_for_string="COMBINER: combiner started, ready for requests."
 
             # Wait for the string in the docker-compose logs
-            #while : ; do
-            #    # Fetch the latest logs and check for the specific string
-            #    if docker-compose logs | grep "$wait_for_string"; then
-            #       echo "Restart complete"
-            #       break
-            #    else
-            #       echo "Waiting for reducer and combiner..."
-            #       sleep 2 # Check every 2 seconds
-            #    fi
-            #done
-	    sleep 20
+            while : ; do
+                # Fetch the latest logs and check for the specific string
+                if docker-compose logs | grep "$wait_for_string"; then
+                   echo "Restart complete"
+                   break
+                else
+                   echo "Waiting for reducer and combiner..."
+                   sleep 2 # Check every 2 seconds
+                fi
+            done
+	    #sleep 20
 
             # Upload package and download the client.yaml file
             echo "Uploading the package"
