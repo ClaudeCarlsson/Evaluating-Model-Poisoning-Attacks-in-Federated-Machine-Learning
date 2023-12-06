@@ -44,7 +44,9 @@ pip install torch > /dev/null 2>&1
 pip install torchvision  > /dev/null 2>&1
 apt install python3-venv -y > /dev/null 2>&1
 apt install pip -y > /dev/null 2>&1
-apt install python3 -y> /dev/null 2>&1
+apt install python3 -y > /dev/null 2>&1
+apt install docker -y > /dev/null 2>&1
+apt install docker-compose -y > /dev/null 2>&1
 echo "Installation complete"
 
 echo "Building images"
@@ -135,20 +137,17 @@ for attack in "${attacks[@]}"; do
             echo "Cleanup complete, restarting experiment"
             python3 bin/split_data --n_splits=$n_clients
             python3 bin/random_seed
-
-	   
-            docker-compose up -d > /dev/null 2>&1
-
+            docker-compose -f ../../docker-compose.yaml up -d > /dev/null 2>&1
 
             # String to wait for
-            wait_for_string="COMBINER: combiner started, ready for requests."
+            #wait_for_string="COMBINER: combiner started, ready for requests."
 
             # Wait for the string in the docker-compose logs
             #while : ; do
             #    # Fetch the latest logs and check for the specific string
             #    if docker-compose logs | grep "$wait_for_string"; then
-            #        echo "Restart complete"
-            #        break
+            #       echo "Restart complete"
+            #       break
             #    else
             #       echo "Waiting for reducer and combiner..."
             #       sleep 2 # Check every 2 seconds
