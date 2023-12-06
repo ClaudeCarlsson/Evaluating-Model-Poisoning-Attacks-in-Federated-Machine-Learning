@@ -89,7 +89,7 @@ if __name__ == "__main__":
 
     root_dir = sys.argv[1]
     target_label = float(sys.argv[2])
-    p_ratio = float(sys.argv[3]/100)
+    p_ratio = float(sys.argv[3])/100
 
     # Assuming you always want to use example_swap_function for now
     backdoor_attack(root_dir, target_label, p_ratio)
