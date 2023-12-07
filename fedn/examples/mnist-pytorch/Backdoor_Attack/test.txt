@@ -1,0 +1,39 @@
+%%%%%%%%%%%%%% HOW TO USE %%%%%%%%%%%%%%
+
+## Navigate to working directory
+cd /Users/Edvin/Desktop/Project/Evaluating-Model-Poisoning-Attacks-in-Federated-Machine-Learning/fedn/examples/mnist-pytorch
+
+
+
+## Start Docker
+docker-compose up
+
+
+
+## Split data
+bin/split_data --n_splits=5
+
+
+
+## Generate seed
+python3 bin/random_seed
+
+
+
+## Upload default compute package and seed
+python3 upload.py
+python3 client.py
+
+
+
+## Create poison data
+Backdoor_Attack/backdoor_attack.py data 5 0.4
+
+- data is the path which holds the clients directory
+- 5 is the target label to add the backdoor to 
+- 0.8 is the ratio of clients to poison all their data
+
+
+
+## Run poisoned clients 
+Backdoor_Attack/run_backdoor_clients.sh 5
