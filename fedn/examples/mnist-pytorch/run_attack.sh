@@ -145,17 +145,17 @@ for attack in "${attacks[@]}"; do
             wait_for_string="COMBINER: combiner started, ready for requests."
 
             # Wait for the string in the docker-compose logs
-            while : ; do
-                # Fetch the latest logs and check for the specific string
-                if docker-compose logs | grep "$wait_for_string"; then
-                   echo "Restart complete"
-                   break
-                else
-                   echo "Waiting for reducer and combiner..."
-                   sleep 2 # Check every 2 seconds
-                fi
-            done
-	    #sleep 20
+            #while : ; do
+            #    # Fetch the latest logs and check for the specific string
+            #   if docker-compose logs | grep "$wait_for_string"; then
+            #      echo "Restart complete"
+            #      break
+            #   else
+            #       echo "Waiting for reducer and combiner..."
+            #       sleep 2 # Check every 2 seconds
+            #    fi
+            #done
+	    sleep 20
 
             # Upload package and download the client.yaml file
             echo "Uploading the package"
