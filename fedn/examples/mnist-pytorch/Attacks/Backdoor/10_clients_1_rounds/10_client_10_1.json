@@ -1,0 +1,162 @@
+[
+    {
+        "_id": "6570c3480788ba28e38cfeaf",
+        "sender": {
+            "name": "client-backdoor8",
+            "role": "WORKER"
+        },
+        "receiver": {
+            "role": "COMBINER",
+            "name": "combiner"
+        },
+        "modelId": "55aefeb2-2fd5-4a40-92b8-8e280d66948e",
+        "data": "{\"training_loss\": 2.276784658432007, \"training_accuracy\": 0.15316666662693024, \"test_loss\": 2.2732250690460205, \"test_accuracy\": 0.16699999570846558}",
+        "correlationId": "58c6d591-085f-4c09-b150-9fa92a70f7df",
+        "timestamp": "2023-12-06 18:54:00.812154",
+        "meta": ""
+    },
+    {
+        "_id": "6570c3480788ba28e38cfeb2",
+        "sender": {
+            "name": "client-backdoor4",
+            "role": "WORKER"
+        },
+        "receiver": {
+            "role": "COMBINER",
+            "name": "combiner"
+        },
+        "modelId": "55aefeb2-2fd5-4a40-92b8-8e280d66948e",
+        "data": "{\"training_loss\": 2.2777419090270996, \"training_accuracy\": 0.14916667342185974, \"test_loss\": 2.284667491912842, \"test_accuracy\": 0.13199999928474426}",
+        "correlationId": "58c6d591-085f-4c09-b150-9fa92a70f7df",
+        "timestamp": "2023-12-06 18:54:00.917719",
+        "meta": ""
+    },
+    {
+        "_id": "6570c3480788ba28e38cfeb4",
+        "sender": {
+            "name": "client-backdoor5",
+            "role": "WORKER"
+        },
+        "receiver": {
+            "role": "COMBINER",
+            "name": "combiner"
+        },
+        "modelId": "55aefeb2-2fd5-4a40-92b8-8e280d66948e",
+        "data": "{\"training_loss\": 2.2793710231781006, \"training_accuracy\": 0.15150000154972076, \"test_loss\": 2.279233694076538, \"test_accuracy\": 0.15000000596046448}",
+        "correlationId": "58c6d591-085f-4c09-b150-9fa92a70f7df",
+        "timestamp": "2023-12-06 18:54:00.925896",
+        "meta": ""
+    },
+    {
+        "_id": "6570c3480788ba28e38cfeae",
+        "sender": {
+            "name": "client-backdoor10",
+            "role": "WORKER"
+        },
+        "receiver": {
+            "role": "COMBINER",
+            "name": "combiner"
+        },
+        "modelId": "55aefeb2-2fd5-4a40-92b8-8e280d66948e",
+        "data": "{\"training_loss\": 2.280721426010132, \"training_accuracy\": 0.1418333351612091, \"test_loss\": 2.273831844329834, \"test_accuracy\": 0.17399999499320984}",
+        "correlationId": "58c6d591-085f-4c09-b150-9fa92a70f7df",
+        "timestamp": "2023-12-06 18:54:00.793417",
+        "meta": ""
+    },
+    {
+        "_id": "6570c3480788ba28e38cfeb0",
+        "sender": {
+            "name": "client-backdoor3",
+            "role": "WORKER"
+        },
+        "receiver": {
+            "role": "COMBINER",
+            "name": "combiner"
+        },
+        "modelId": "55aefeb2-2fd5-4a40-92b8-8e280d66948e",
+        "data": "{\"training_loss\": 2.2766940593719482, \"training_accuracy\": 0.14900000393390656, \"test_loss\": 2.2784299850463867, \"test_accuracy\": 0.15600000321865082}",
+        "correlationId": "58c6d591-085f-4c09-b150-9fa92a70f7df",
+        "timestamp": "2023-12-06 18:54:00.827455",
+        "meta": ""
+    },
+    {
+        "_id": "6570c3490788ba28e38cfeb8",
+        "sender": {
+            "name": "client-backdoor9",
+            "role": "WORKER"
+        },
+        "receiver": {
+            "role": "COMBINER",
+            "name": "combiner"
+        },
+        "modelId": "55aefeb2-2fd5-4a40-92b8-8e280d66948e",
+        "data": "{\"training_loss\": 2.2755672931671143, \"training_accuracy\": 0.15549999475479126, \"test_loss\": 2.2791147232055664, \"test_accuracy\": 0.15000000596046448}",
+        "correlationId": "58c6d591-085f-4c09-b150-9fa92a70f7df",
+        "timestamp": "2023-12-06 18:54:01.067522",
+        "meta": ""
+    },
+    {
+        "_id": "6570c3490788ba28e38cfeba",
+        "sender": {
+            "name": "client-backdoor2",
+            "role": "WORKER"
+        },
+        "receiver": {
+            "role": "COMBINER",
+            "name": "combiner"
+        },
+        "modelId": "55aefeb2-2fd5-4a40-92b8-8e280d66948e",
+        "data": "{\"training_loss\": 2.2801575660705566, \"training_accuracy\": 0.14800000190734863, \"test_loss\": 2.2794697284698486, \"test_accuracy\": 0.15800000727176666}",
+        "correlationId": "58c6d591-085f-4c09-b150-9fa92a70f7df",
+        "timestamp": "2023-12-06 18:54:01.106610",
+        "meta": ""
+    },
+    {
+        "_id": "6570c3490788ba28e38cfebc",
+        "sender": {
+            "name": "client-backdoor7",
+            "role": "WORKER"
+        },
+        "receiver": {
+            "role": "COMBINER",
+            "name": "combiner"
+        },
+        "modelId": "55aefeb2-2fd5-4a40-92b8-8e280d66948e",
+        "data": "{\"training_loss\": 2.276508092880249, \"training_accuracy\": 0.15649999678134918, \"test_loss\": 2.2802999019622803, \"test_accuracy\": 0.1420000046491623}",
+        "correlationId": "58c6d591-085f-4c09-b150-9fa92a70f7df",
+        "timestamp": "2023-12-06 18:54:01.112595",
+        "meta": ""
+    },
+    {
+        "_id": "6570c3490788ba28e38cfebe",
+        "sender": {
+            "name": "client-backdoor6",
+            "role": "WORKER"
+        },
+        "receiver": {
+            "role": "COMBINER",
+            "name": "combiner"
+        },
+        "modelId": "55aefeb2-2fd5-4a40-92b8-8e280d66948e",
+        "data": "{\"training_loss\": 2.2758982181549072, \"training_accuracy\": 0.15049999952316284, \"test_loss\": 2.2737925052642822, \"test_accuracy\": 0.1599999964237213}",
+        "correlationId": "58c6d591-085f-4c09-b150-9fa92a70f7df",
+        "timestamp": "2023-12-06 18:54:01.120250",
+        "meta": ""
+    },
+    {
+        "_id": "6570c3490788ba28e38cfec0",
+        "sender": {
+            "name": "client-backdoor1",
+            "role": "WORKER"
+        },
+        "receiver": {
+            "role": "COMBINER",
+            "name": "combiner"
+        },
+        "modelId": "55aefeb2-2fd5-4a40-92b8-8e280d66948e",
+        "data": "{\"training_loss\": 2.279782295227051, \"training_accuracy\": 0.15466666221618652, \"test_loss\": 2.2814292907714844, \"test_accuracy\": 0.13300000131130219}",
+        "correlationId": "58c6d591-085f-4c09-b150-9fa92a70f7df",
+        "timestamp": "2023-12-06 18:54:01.167666",
+        "meta": ""
+    }
+]
