@@ -108,7 +108,7 @@ mkdir -p "$ATTACK_DIR_5"
 
 # Attacks
 attacks=(5)
-mal_ratios=(10)
+mal_ratios=(12 14 16 18 20 0)
 
 for attack in "${attacks[@]}"; do
     echo "Performing attack number: $attack"
