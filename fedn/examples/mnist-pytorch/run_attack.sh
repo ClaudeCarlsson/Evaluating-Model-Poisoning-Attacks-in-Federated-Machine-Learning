@@ -70,45 +70,27 @@ cd ..
 
 echo "Images have been successfully built"
 
-echo "Preparing enviroment"
+echo "Preparing environment"
 bin/init_venv.sh > /dev/null 2>&1
 bin/build.sh > /dev/null 2>&1
 bin/get_data > /dev/null 2>&1
-echo "Enviroment complete"
+echo "Environment complete"
 
 read -p $'\e[1;31mGiven the same configuration, this script will overwrite previously results. Please confirm by pressing the \'Enter\' key to proceed.\e[0m'
 
-# Define the subdirectory paths without the leading slash
-DIR_PATH_1="Attacks/Gradient_X10"
-DIR_PATH_2="Attacks/Gradient_X100"
-DIR_PATH_3="Attacks/Gradient_Inv"
-DIR_PATH_4="Attacks/Label_Flipping"
-DIR_PATH_5="Attacks/Backdoor"
+# Define the mal_ratios array
+mal_ratios=(0 10 20)
 
-# Create the required directory structure, including parent directories
+# Create the required directory structure, including parent directories and mal_ratio subdirectories
 mkdir -p "Attacks"
-mkdir -p "$DIR_PATH_1"
-mkdir -p "$DIR_PATH_2"
-mkdir -p "$DIR_PATH_3"
-mkdir -p "$DIR_PATH_4"
-mkdir -p "$DIR_PATH_5"
-
-# Define the directory path with variables and create it
-ATTACK_DIR_1="Attacks/Gradient_X10/${n_clients}_clients_${rounds}_rounds"
-ATTACK_DIR_2="Attacks/Gradient_X100/${n_clients}_clients_${rounds}_rounds"
-ATTACK_DIR_3="Attacks/Gradient_Inv/${n_clients}_clients_${rounds}_rounds"
-ATTACK_DIR_4="Attacks/Label_Flipping/${n_clients}_clients_${rounds}_rounds"
-ATTACK_DIR_5="Attacks/Backdoor/${n_clients}_clients_${rounds}_rounds"
-
-mkdir -p "$ATTACK_DIR_1"
-mkdir -p "$ATTACK_DIR_2"
-mkdir -p "$ATTACK_DIR_3"
-mkdir -p "$ATTACK_DIR_4"
-mkdir -p "$ATTACK_DIR_5"
+for attack_dir in "Gradient_X10" "Gradient_X100" "Gradient_Inv" "Label_Flipping" "Backdoor"; do
+    for ratio in "${mal_ratios[@]}"; do
+        mkdir -p "Attacks/$attack_dir/${ratio}%"
+    done
+done
 
 # Attacks
 attacks=(5)
-mal_ratios=(12 14 16 18 20 0)
 
 for attack in "${attacks[@]}"; do
     echo "Performing attack number: $attack"
@@ -155,9 +137,8 @@ for attack in "${attacks[@]}"; do
             #       sleep 2 # Check every 2 seconds
             #    fi
             #done
-	    sleep 20
+            sleep 20
 
-            # Upload package and download the client.yaml file
             echo "Uploading the package"
             python3 upload.py
             echo "Downloading the client.yaml file"
@@ -186,35 +167,25 @@ for attack in "${attacks[@]}"; do
                 Backdoor_Attack/backdoor_attack.py data 5 $mal_ratio
                 Backdoor_Attack/run_poisoned_clients.sh $((product + remaining)) > /dev/null 2>&1
             fi
-            
 
             echo "Clients started"
-
             echo "Performing attack $i/3"
-            # Run training
             python3 run_training.py --rounds $rounds --n_clients $n_clients
 
             echo "Attack complete, waiting for results"
 
             # Determine the output file path based on the attack value
-            if [ "$attack" = "1" ]; then
-                OUTPUT_FILE="${ATTACK_DIR_1}/${n_clients}_client_${mal_ratio}_${i}.json"
-            elif [ "$attack" = "2" ]; then
-                OUTPUT_FILE="${ATTACK_DIR_2}/${n_clients}_client_${mal_ratio}_${i}.json"
-            elif [ "$attack" = "3" ]; then
-                OUTPUT_FILE="${ATTACK_DIR_3}/${n_clients}_client_${mal_ratio}_${i}.json"
-            elif [ "$attack" = "4" ]; then
-                OUTPUT_FILE="${ATTACK_DIR_4}/${n_clients}_client_${mal_ratio}_${i}.json"
-            elif [ "$attack" = "5" ]; then
-                OUTPUT_FILE="${ATTACK_DIR_5}/${n_clients}_client_${mal_ratio}_${i}.json"
-            else
-                echo "Invalid attack value"
-                exit 1
-            fi
-
+            OUTPUT_FILE="Attacks/${attack_dir}/${mal_ratio}%/${n_clients}_clients_${rounds}_rounds.json"
+            
             echo "Downloading the results"
-            # Run the Python script with the output file path
             python3 download.py $OUTPUT_FILE $n_documents
+
+            # Save the model parameters if it's a backdoor attack
+            if [ "$attack" = "5" ]; then
+                PARAMS_FILE="Attacks/${attack_dir}/${mal_ratio}%/model_params_${n_clients}_clients_${mal_ratio}_${i}.json"
+                python3 download_params.py $PARAMS_FILE
+                echo "Model parameters saved as $PARAMS_FILE"
+            fi
 
             echo "Experiment done"
         done
