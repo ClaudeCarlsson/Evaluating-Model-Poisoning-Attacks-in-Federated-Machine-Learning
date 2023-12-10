@@ -175,7 +175,7 @@ for attack in "${attacks[@]}"; do
             echo "Attack complete, waiting for results"
 
             # Determine the output file path based on the attack value
-            OUTPUT_FILE="Attacks/${attack_dir}/${mal_ratio}%/${n_clients}_clients_${rounds}_rounds.json"
+            OUTPUT_FILE="Attacks/${attack_dir}/${mal_ratio}%/${n_clients}_clients_${rounds}_rounds_${i}.json"
             
             echo "Downloading the results"
             python3 download.py $OUTPUT_FILE $n_documents
