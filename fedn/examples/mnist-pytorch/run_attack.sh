@@ -76,7 +76,7 @@ bin/build.sh > /dev/null 2>&1
 bin/get_data > /dev/null 2>&1
 echo "Environment complete"
 
-read -p $'\e[1;31mGiven the same configuration, this script will overwrite previously results. Please confirm by pressing the \'Enter\' key to proceed.\e[0m'
+#read -p $'\e[1;31mGiven the same configuration, this script will overwrite previously results. Please confirm by pressing the \'Enter\' key to proceed.\e[0m'
 
 # Define the mal_ratios array
 mal_ratios=(0 10 20)
@@ -96,7 +96,7 @@ for attack in "${attacks[@]}"; do
     echo "Performing attack number: $attack"
     for mal_ratio in "${mal_ratios[@]}"; do
         # Loop 3 times
-        for (( i=1; i<=3; i++ ))
+        for (( i=1; i<=1; i++ ))
         do
             # Initialization to reset the experiment
             echo "Removing old containers and prepare a new experiment"
@@ -182,7 +182,7 @@ for attack in "${attacks[@]}"; do
 
             # Save the model parameters if it's a backdoor attack
             if [ "$attack" = "5" ]; then
-                PARAMS_FILE="Attacks/${attack_dir}/${mal_ratio}%/model_params_${n_clients}_clients_${mal_ratio}_${i}.json"
+                PARAMS_FILE="Attacks/${attack_dir}/${mal_ratio}%/params_${n_clients}_clients_${rounds}_rounds_${i}.json"
                 python3 download_params.py $PARAMS_FILE
                 echo "Model parameters saved as $PARAMS_FILE"
             fi
