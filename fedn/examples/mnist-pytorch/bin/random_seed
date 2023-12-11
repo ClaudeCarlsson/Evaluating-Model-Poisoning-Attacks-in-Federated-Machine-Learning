@@ -1,41 +1,68 @@
 #!./.mnist-pytorch/bin/python
-import numpy as np
+import collections
 import fire
+import time
+import torch
+from fedn.utils.helpers import get_helper
 
-def create_new_seed_file():
-    try:
-        # Set keys
-        keys = ['fc1.weight', 'fc1.bias', 'fc2.weight', 'fc2.bias', 'fc3.weight', 'fc3.bias']
-        
-        # Set layers sizes
-        shapes = [(64, 784), (64,), (32, 64), (32,), (10, 32), (10,)]
-        
-        # Set new seed path:
-        new_seed_path = "random_seed.npz"
+HELPER_MODULE = 'pytorchhelper'
+NUM_CLASSES = 10
 
-        # Dictionary to hold new data
-        new_data = {}
+def _compile_model():
+    """ Compile the pytorch model.
 
-        # Iterate over keys in the original file
-        for i in range(len(keys)):
-            # Get the key
-            key = keys[i]
-            
-            # Get the shape
-            shape = shapes[i]
+    :return: The compiled model.
+    :rtype: torch.nn.Module
+    """
 
-            # Generate new random data with the same shape
-            new_data[key] = np.random.rand(*shape)/10
+    # Set a random seed based on the current time
+    torch.manual_seed(int(time.time())) 
 
-        # Save new data to a new seed file
-        np.savez(new_seed_path, **new_data)
+    class Net(torch.nn.Module):
+        def __init__(self):
+            super(Net, self).__init__()
+            self.fc1 = torch.nn.Linear(784, 64)
+            self.fc2 = torch.nn.Linear(64, 32)
+            self.fc3 = torch.nn.Linear(32, 10)
 
-        print("Random seed created!")
+        def forward(self, x):
+            x = torch.nn.functional.relu(self.fc1(x.reshape(x.size(0), 784)))
+            x = torch.nn.functional.dropout(x, p=0.5, training=self.training)
+            x = torch.nn.functional.relu(self.fc2(x))
+            x = torch.nn.functional.log_softmax(self.fc3(x), dim=1)
+            return x
 
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    # Return model
+    return Net()
+
+
+def _save_model(model, out_path):
+    """ Save model to disk. 
+
+    :param model: The model to save.
+    :type model: torch.nn.Module
+    :param out_path: The path to save to.
+    :type out_path: str
+    """
+    weights = model.state_dict()
+    weights_np = collections.OrderedDict()
+    for w in weights:
+        weights_np[w] = weights[w].cpu().detach().numpy()
+    helper = get_helper(HELPER_MODULE)
+    helper.save(weights, out_path)
+
+
+def init_seed(out_path='random_seed.npz'):
+    """ Initialize seed model.
+
+    :param out_path: The path to save the seed model to.
+    :type out_path: str
+    """
+    # Init and save
+    model = _compile_model()
+    _save_model(model, out_path)
+
+
 
 if __name__ == '__main__':
-    fire.Fire(create_new_seed_file)
-
-
+    fire.Fire(init_seed)
