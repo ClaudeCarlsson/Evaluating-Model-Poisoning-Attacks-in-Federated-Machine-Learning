@@ -89,6 +89,14 @@ for attack_dir in "Gradient_X10" "Gradient_X100" "Gradient_Inv" "Label_Flipping"
     done
 done
 
+# Attacks and their corresponding directories
+declare -A attack_directories
+attack_directories[1]="Gradient_X10"
+attack_directories[2]="Gradient_X100"
+attack_directories[3]="Gradient_Inv"
+attack_directories[4]="Label_Flipping"
+attack_directories[5]="Backdoor"
+
 # Attacks
 attacks=(5)
 
@@ -175,6 +183,7 @@ for attack in "${attacks[@]}"; do
             echo "Attack complete, waiting for results"
 
             # Determine the output file path based on the attack value
+            attack_dir=${attack_directories[$attack]} # Get the corresponding directory for the attack
             OUTPUT_FILE="Attacks/${attack_dir}/${mal_ratio}%/${n_clients}_clients_${rounds}_rounds_${i}.json"
             
             echo "Downloading the results"
