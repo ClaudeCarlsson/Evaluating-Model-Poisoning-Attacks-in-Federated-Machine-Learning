@@ -25,11 +25,10 @@ collection = db['control.validations']
 fetched_count = 0
 data = []
 while fetched_count < args.n_documents:
-    documents = collection.find()
-    for doc in documents:
-        if doc not in data:
-            data.append(doc)
-            fetched_count += 1
+    documents = collection.find().limit(args.n_documents - fetched_count)
+    new_docs = [doc for doc in documents]
+    data.extend(new_docs)
+    fetched_count += len(new_docs)
     
     # Check if the desired number of documents is reached
     if fetched_count < args.n_documents:
