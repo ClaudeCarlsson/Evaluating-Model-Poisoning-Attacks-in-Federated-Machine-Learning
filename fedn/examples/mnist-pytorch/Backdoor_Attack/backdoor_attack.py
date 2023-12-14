@@ -30,15 +30,6 @@ def add_backdoor_to_image(image):
 
 
 def backdoor_attack(path, target_label, fraction):
-    """
-    Adds a backdoor to the training images by adding a small white dot in the top left corner
-    for a fraction of the mnist.pt files in numbered subfolders. The backdoor is only added to images
-    with the specified target_label. Saves them in the backdoor_clients directory.
-
-    :param path: The root directory where the 'clients' folder is located.
-    :param target_label: The label for which the backdoor will be added.
-    :param fraction: The fraction of clients that should have the backdoor.
-    """
     clients_dir = os.path.join(path, 'clients')
     backdoor_clients_dir = os.path.join(path, 'backdoor_clients')
 
@@ -51,21 +42,24 @@ def backdoor_attack(path, target_label, fraction):
     if not os.path.exists(clients_dir):
         return "Clients directory does not exist."
 
+    # Sorting the folders numerically
+    folders = sorted(os.listdir(clients_dir), key=lambda x: int(x) if x.isdigit() else x)
+
     i = 0
-    for folder in sorted(os.listdir(clients_dir)):
+    for folder in folders:
         folder_path = os.path.join(clients_dir, folder)
 
-        if os.path.isdir(folder_path) and folder.isdigit():
+        if os.path.isdir(folder_path):
             mnist_file = os.path.join(folder_path, 'mnist.pt')
 
+            apply_backdoor = i < num_backdoor_folders
             if os.path.isfile(mnist_file):
                 data = torch.load(mnist_file)
 
-                if i < num_backdoor_folders:
+                if apply_backdoor:
                     x_train_backdoor = np.array(data['x_train'])
                     y_train = np.array(data['y_train'])
 
-                    # Apply the backdoor only to images with the target label
                     for j in range(len(x_train_backdoor)):
                         if y_train[j] == target_label:
                             x_train_backdoor[j] = add_backdoor_to_image(x_train_backdoor[j])
@@ -79,7 +73,7 @@ def backdoor_attack(path, target_label, fraction):
                 backdoor_file_path = os.path.join(backdoor_subdir, 'mnist.pt')
                 torch.save(data, backdoor_file_path)
 
-                i += 1
+        i += 1
 
 
 if __name__ == "__main__":
