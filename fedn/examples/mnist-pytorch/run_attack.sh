@@ -16,7 +16,7 @@ if [ "$n_clients" -lt 10 ]; then
 fi
 
 # Directories containing the scripts
-directories=("bin" "Gradient_X10_Attack" "Gradient_X100_Attack" "Backdoor_Attack" "Label_Flipping" "Gradient_Inv_Attack" "Standard_0.6")
+directories=("bin" "Gradient_X10_Attack" "Gradient_X100_Attack" "Backdoor_Attack" "Label_Flipping" "Gradient_Inv_Attack" "Standard_0.6" "Gradient_X175_Attack" "Gradient_X250_Attack" "Gradient_X500_Attack" "Gradient_X1000_Attack")
 
 # Loop through each directory and set executable permissions for .sh files
 for dir in "${directories[@]}"; do
@@ -49,6 +49,7 @@ pip install pyyaml > /dev/null 2>&1
 pip install fedn > /dev/null 2>&1
 pip install torch > /dev/null 2>&1
 pip install torchvision  > /dev/null 2>&1
+pip install boto3 > /dev/null 2>&1
 echo "Installation complete"
 
 echo "Building images"
@@ -59,8 +60,28 @@ docker build . -t grad-x10-fedn-client > /dev/null 2>&1
 cd ..
 
 # Navigate to Gradient_X100_Attack and build image
-cd Gradient_X100_Attack
+cd Gradient_X100_Attack > /dev/null 2>&1
 docker build . -t grad-x100-fedn-client > /dev/null 2>&1
+cd ..
+
+# Navigate to Gradient_X175_Attack and build image
+cd Gradient_X175_Attack
+docker build . -t grad-x175-fedn-client > /dev/null 2>&1
+cd ..
+
+# Navigate to Gradient_X250_Attack and build image
+cd Gradient_X250_Attack
+docker build . -t grad-x250-fedn-client > /dev/null 2>&1
+cd ..
+
+# Navigate to Gradient_X500_Attack and build image
+cd Gradient_X500_Attack
+docker build . -t grad-x500-fedn-client > /dev/null 2>&1
+cd ..
+
+# Navigate to Gradient_X1000_Attack and build image
+cd Gradient_X1000_Attack
+docker build . -t grad-x1000-fedn-client > /dev/null 2>&1
 cd ..
 
 # Navigate to Gradient_Inv_Attack and build image
@@ -83,7 +104,7 @@ mal_ratios=(0 10 20)
 
 # Create the required directory structure, including parent directories and mal_ratio subdirectories
 mkdir -p "Attacks"
-for attack_dir in "Gradient_X10" "Gradient_X100" "Gradient_Inv" "Label_Flipping" "Backdoor"; do
+for attack_dir in "Gradient_X10" "Gradient_X100" "Gradient_Inv" "Label_Flipping" "Backdoor" "Gradient_X175"  "Gradient_X250"  "Gradient_X500"  "Gradient_X1000" ; do
     for ratio in "${mal_ratios[@]}"; do
         mkdir -p "Attacks/$attack_dir/${ratio}%"
     done
@@ -96,6 +117,10 @@ attack_directories[2]="Gradient_X100"
 attack_directories[3]="Gradient_Inv"
 attack_directories[4]="Label_Flipping"
 attack_directories[5]="Backdoor"
+attack_directories[6]="Gradient_X175"
+attack_directories[7]="Gradient_X250"
+attack_directories[8]="Gradient_X500"
+attack_directories[9]="Gradient_X1000"
 
 # Attacks
 attacks=(5)
@@ -104,7 +129,7 @@ for attack in "${attacks[@]}"; do
     echo "Performing attack number: $attack"
     for mal_ratio in "${mal_ratios[@]}"; do
         # Loop 3 times
-        for (( i=1; i<=1; i++ ))
+        for (( i=1; i<=3; i++ ))
         do
             # Initialization to reset the experiment
             echo "Removing old containers and prepare a new experiment"
@@ -124,6 +149,10 @@ for attack in "${attacks[@]}"; do
             stop_containers "grad-fedn-client"
             stop_containers "grad-x10-fedn-client"
             stop_containers "grad-x100-fedn-client"
+            stop_containers "grad-x175-fedn-client"
+            stop_containers "grad-x250-fedn-client"
+            stop_containers "grad-x500-fedn-client"
+            stop_containers "grad-x1000-fedn-client"
             stop_containers "grad-inv-fedn-client"
 
             echo "Cleanup complete, restarting experiment"
@@ -132,8 +161,8 @@ for attack in "${attacks[@]}"; do
             docker-compose -f ../../docker-compose.yaml up -d > /dev/null 2>&1
 
             # String to wait for
-            wait_for_string="COMBINER: combiner started, ready for requests."
-
+            #wait_for_string="COMBINER: combiner started, ready for requests."
+            # 
             # Wait for the string in the docker-compose logs
             #while : ; do
             #    # Fetch the latest logs and check for the specific string
@@ -174,7 +203,20 @@ for attack in "${attacks[@]}"; do
             elif [ "$attack" = "5" ]; then
                 Backdoor_Attack/backdoor_attack.py data 5 $mal_ratio
                 Backdoor_Attack/run_poisoned_clients.sh $((product + remaining)) > /dev/null 2>&1
+            elif [ "$attack" = "6" ]; then
+                Gradient_X175_Attack/run_grad_clients.sh $product > /dev/null 2>&1
+                Standard_0.6/run_clients.sh $remaining > /dev/null 2>&1
+            elif [ "$attack" = "7" ]; then
+                Gradient_X250_Attack/run_grad_clients.sh $product > /dev/null 2>&1
+                Standard_0.6/run_clients.sh $remaining > /dev/null 2>&1
+            elif [ "$attack" = "8" ]; then
+                Gradient_X500_Attack/run_grad_clients.sh $product > /dev/null 2>&1
+                Standard_0.6/run_clients.sh $remaining > /dev/null 2>&1
+            elif [ "$attack" = "9" ]; then
+                Gradient_X1000_Attack/run_grad_clients.sh $product > /dev/null 2>&1
+                Standard_0.6/run_clients.sh $remaining > /dev/null 2>&1
             fi
+
 
             echo "Clients started"
             echo "Performing attack $i/3"
